@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wunderatlas — Vladas Lernbegleiter</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <link rel="stylesheet" href="assets/atlas.css">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+</head>
+<body>
+    <a class="skip-link" href="#main">Zum Inhalt springen</a>
+
+    <header class="app-header" role="banner">
+        <div class="app-header__inner">
+            <a href="#/dashboard" class="app-brand" aria-label="Zur Startseite">
+                <span class="app-brand__mark" aria-hidden="true" data-mascot="greeting">
+                    <svg viewBox="0 0 128 128" width="36" height="36" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M40 38 Q28 50 30 70 Q26 76 32 84 Q24 90 32 100 Q26 108 38 110 Q40 118 50 116 Q44 122 50 124 L52 96 Q48 80 52 60 Q48 46 56 38 Z" fill="#e14d6e" stroke="#c83a5b" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M88 38 Q100 50 98 70 Q102 76 96 84 Q104 90 96 100 Q102 108 90 110 Q88 118 78 116 Q84 122 78 124 L76 96 Q80 80 76 60 Q80 46 72 38 Z" fill="#e14d6e" stroke="#c83a5b" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M52 32 L46 18 L60 28 Z" fill="#e14d6e" stroke="#c83a5b" stroke-width="1.4" stroke-linejoin="round"/>
+                        <path d="M76 32 L82 18 L68 28 Z" fill="#e14d6e" stroke="#c83a5b" stroke-width="1.4" stroke-linejoin="round"/>
+                        <path d="M64 36 Q44 36 40 56 Q36 72 44 86 Q48 100 64 100 Q80 100 84 86 Q92 72 88 56 Q84 36 64 36 Z" fill="#fff1e0" stroke="#c83a5b" stroke-width="1.8" stroke-linejoin="round"/>
+                        <ellipse cx="64" cy="84" rx="14" ry="10" fill="#fff3e2" stroke="#c83a5b" stroke-width="1.4"/>
+                        <path d="M58 38 Q64 30 70 38 Q66 50 64 48 Q62 50 58 38 Z" fill="#e14d6e" stroke="#c83a5b" stroke-width="1.4"/>
+                        <ellipse cx="55" cy="68" rx="4.5" ry="5.5" fill="#3a1e2c"/>
+                        <ellipse cx="73" cy="68" rx="4.5" ry="5.5" fill="#3a1e2c"/>
+                        <circle cx="56.5" cy="66.5" r="1.6" fill="#fff"/>
+                        <circle cx="74.5" cy="66.5" r="1.6" fill="#fff"/>
+                        <circle cx="50" cy="80" r="3.5" fill="#f7a9b8" opacity="0.6"/>
+                        <circle cx="78" cy="80" r="3.5" fill="#f7a9b8" opacity="0.6"/>
+                        <path d="M58 88 Q64 94 70 88" stroke="#3a1e2c" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+                        <path d="M40 110 Q60 122 88 110 Q86 124 64 126 Q42 124 40 110 Z" fill="#fff1e0" stroke="#c83a5b" stroke-width="1.6" stroke-linejoin="round"/>
+                        <path d="M42 116 Q30 122 28 130" stroke="#46b890" stroke-width="5" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="app-brand__text">
+                    <span class="app-brand__name">Wunderatlas<span aria-hidden="true"> ✳</span></span>
+                    <span class="app-brand__sub">VLADAS LERNBEGLEITER · FHR 2027</span>
+                </span>
+            </a>
+
+            <nav class="app-nav" aria-label="Hauptnavigation">
+                <a href="#/dashboard" data-nav="dashboard">Mein Atlas</a>
+                <a href="#/plan" data-nav="plan">Lernplan</a>
+                <div class="nav-group" data-nav-group="lernen">
+                    <button type="button" class="nav-group__btn" id="lernen-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="lernen-menu">Lernen <span class="caret" aria-hidden="true">▾</span></button>
+                    <div class="nav-submenu" id="lernen-menu" role="menu" hidden>
+                        <a href="#/deutsch" data-nav="deutsch" role="menuitem">Deutsch</a>
+                        <a href="#/englisch" data-nav="englisch" role="menuitem">Englisch</a>
+                        <a href="#/mathematik" data-nav="mathematik" role="menuitem">Mathematik</a>
+                        <a href="#/lernkarten" data-nav="lernkarten" role="menuitem">Lernkarten</a>
+                    </div>
+                </div>
+                <a href="#/pruefung" data-nav="pruefung">Prüfung</a>
+            </nav>
+
+            <div class="app-header__actions">
+                <button class="icon-btn" id="theme-toggle" type="button" data-theme-btn="dark" aria-label="Dunkles Design" title="Design umschalten">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </button>
+                <div class="burger" data-burger>
+                    <button class="icon-btn burger__btn" id="burger-btn" type="button" aria-label="Weitere Optionen" aria-haspopup="true" aria-expanded="false" aria-controls="burger-menu">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="5" r="1.5" fill="currentColor"/>
+                            <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                            <circle cx="12" cy="19" r="1.5" fill="currentColor"/>
+                        </svg>
+                    </button>
+                    <div class="burger__menu" id="burger-menu" role="menu" hidden>
+                        <a href="#/fortschritt" data-nav="fortschritt" role="menuitem">Fortschritt</a>
+                        <a href="#/fehler" data-nav="fehler" role="menuitem">Fehlerjournal</a>
+                        <a href="#/notizen" data-nav="notizen" role="menuitem">Notizen</a>
+                        <a href="#/profil" data-nav="profil" role="menuitem">Profil &amp; Diagnostik</a>
+                        <a href="#/quellen" data-nav="quellen" role="menuitem">Quellen</a>
+                        <hr>
+                        <button type="button" data-action="theme" role="menuitem">Design wechseln</button>
+                        <button type="button" data-action="logout" role="menuitem">Abmelden</button>
+                    </div>
+                </div>
+                <button class="icon-btn nav-toggle" id="nav-toggle" type="button" aria-label="Menü öffnen" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="3" y1="6" x2="21" y1="6"/>
+                        <line x1="3" y1="12" x2="21" y1="12"/>
+                        <line x1="3" y1="18" x2="21" y1="18"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="app-main" tabindex="-1">
+        <div id="crumbs" class="breadcrumbs" aria-label="Brotkrumen" hidden></div>
+        <div id="page-root" class="page-root" aria-live="polite"></div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="app-footer__inner">
+            <span>Fachhochschulreife-Vorbereitung — Carl-Hofer-Schule Karlsruhe</span>
+            <span class="app-footer__sep" aria-hidden="true">·</span>
+            <span id="footer-status">Bereit</span>
+        </div>
+    </footer>
+
+    <div id="modal-root" class="modal-root" aria-hidden="true"></div>
+    <div id="toast-root" class="toast-root" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Modules: order matters -->
+    <script src="assets/icons.js"></script>
+    <script src="assets/mascot.js"></script>
+    <script src="assets/motifs.js"></script>
+    <script src="assets/i18n.js"></script>
+    <script src="assets/state.js"></script>
+    <script src="assets/router.js"></script>
+    <script src="assets/review.js"></script>
+    <script src="assets/data/sources.js"></script>
+    <script src="assets/data/content-de.js"></script>
+    <script src="assets/data/content-en.js"></script>
+    <script src="assets/data/content-math.js"></script>
+    <script src="assets/data/content-grafik.js"></script>
+    <script src="assets/data/content-extra.js"></script>
+    <script>if (window.ContentExtras) window.ContentExtras.apply();</script>
+    <script src="assets/data/vlada-learning.js"></script>
+    <script src="assets/data/plan-template.js"></script>
+    <script src="assets/exercises/engine.js"></script>
+    <script src="assets/exercises/sequential.js"></script>
+    <script src="assets/exercises/multiple-choice.js"></script>
+    <script src="assets/exercises/fill-blank.js"></script>
+    <script src="assets/exercises/error-correction.js"></script>
+    <script src="assets/exercises/match-pairs.js"></script>
+    <script src="assets/exercises/sort-order.js"></script>
+    <script src="assets/exercises/free-text.js"></script>
+    <script src="assets/exercises/flashcards.js"></script>
+    <script src="assets/exercises/timed-writing.js"></script>
+    <script src="assets/exercises/math-input.js"></script>
+    <script src="assets/exercises/cloze.js"></script>
+    <script src="assets/exercises/mini-exam.js"></script>
+    <script src="assets/pages/dashboard.js"></script>
+    <script src="assets/pages/plan.js"></script>
+    <script src="assets/pages/deutsch.js"></script>
+    <script src="assets/pages/englisch.js"></script>
+    <script src="assets/pages/mathematik.js"></script>
+    <script src="assets/pages/grafik.js"></script>
+    <script src="assets/pages/pruefung.js"></script>
+    <script src="assets/pages/fehler.js"></script>
+    <script src="assets/pages/notizen.js"></script>
+    <script src="assets/pages/fortschritt.js"></script>
+    <script src="assets/pages/profil.js"></script>
+    <script src="assets/pages/lernkarten.js"></script>
+    <script src="assets/pages/onboarding.js"></script>
+    <script src="assets/pages/quellen.js"></script>
+    <script src="assets/learner.js"></script>
+    <script src="assets/ai.js"></script>
+    <script src="assets/auth.js"></script>
+    <script src="assets/atlas.js"></script>
+    <script src="assets/app.js"></script>
+    <!-- Figma capture is opt-in; ordinary learning sessions load no design tooling. -->
+    <script>if(new URLSearchParams(location.search).has('figma')){const s=document.createElement('script');s.src='https://mcp.figma.com/mcp/html-to-design/capture.js';s.async=true;document.head.appendChild(s);}</script>
+</body>
+</html>
