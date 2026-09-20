@@ -6,18 +6,18 @@
             id: 'portfolio_uebersicht',
             title: 'Portfolio – Übersicht',
             type: 'lesson',
-            summary: 'Begleitendes Portfolio bis zur FHR. Vier Projekte, dokumentiert vom Briefing bis zur Schlusspräsentation.',
+            summary: 'Eigene Arbeiten auswählen und den Weg vom Briefing zum Ergebnis nachvollziehbar zeigen. Die folgenden Richtungen sind Beispiele, keine feste schulische Anzahl.',
             sections: [
-                { h: 'Projekte', html: '<ol><li>Markenrelaunch (Logos, Wortmarke, Anwendung)</li><li>Editorial (Magazin, Buch oder Broschüre)</li><li>Plakat / Kampagne (Print oder Digital)</li><li>Freies Projekt (z. B. Motion, Verpackung, Type)</li></ol>' }
+                { h: 'Mögliche Richtungen', html: '<ol><li>Markenrelaunch (Logos, Wortmarke, Anwendung)</li><li>Editorial (Magazin, Buch oder Broschüre)</li><li>Plakat / Kampagne (Print oder Digital)</li><li>Freies Projekt (z. B. Motion, Verpackung, Type)</li></ol>' }
             ],
             exercises: [
-                { type: 'mc', topic: 'portfolio_uebersicht', q: 'Wie viele Projekte umfasst das begleitende Portfolio?', options: ['2','3','4','6'], answer: 2, explanation: 'Vier Projekte.' }
+                { type: 'mc', topic: 'portfolio_uebersicht', q: 'Was macht deinen eigenen Beitrag im Portfolio nachvollziehbar?', options: ['Nur ein dekoratives Mock-up','Möglichst viele Seiten','Aufgabe, Entscheidungen und Eigenanteil','Eine Liste von Programmnamen'], answer: 2, explanation: 'Aufgabe, begründete Entscheidungen und Eigenanteil zeigen die tatsächliche Arbeit.' }
             ]
         },
 
         markenrelaunch_briefing: {
             id: 'markenrelaunch_briefing',
-            title: 'Projekt 1: Markenrelaunch – Briefing',
+            title: 'Markenrelaunch – ein Briefing verstehen',
             type: 'lesson',
             summary: 'Vom Briefing zur Markenstrategie. Zielgruppe, Tonalität, Markenwerte.',
             sections: [

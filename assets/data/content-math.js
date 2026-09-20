@@ -26,7 +26,7 @@
             type: 'lesson',
             summary: 'Funktionen der Form f(x) = mx + b. Bedeutung von Steigung m und y-Achsen-Abschnitt b.',
             sections: [
-                { h: 'Form', html: '<p>f(x) = mx + b mit m ≠ 0.<br>Steigung <em>m = Δy/Δx</em>, y-Achsen-Abschnitt <em>b = f(0)</em>.</p>' },
+                { h: 'Form', html: '<p>f(x) = mx + b. Für m = 0 ist die Funktion konstant.<br>Steigung <em>m = Δy/Δx</em>, y-Achsen-Abschnitt <em>b = f(0)</em>.</p>' },
                 { h: 'Steigungswinkel', html: '<p>Der Winkel α zur x-Achse: tan(α) = m.</p>' }
             ],
             exercises: [
