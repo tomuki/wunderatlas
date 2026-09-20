@@ -1,6 +1,6 @@
 /* Static file server with secure server-side auth, profile/learner persistence,
    AI task generation and optional AI feedback. All secrets are read from env.
-   The API key (Anthropic) is never exposed to the client. */
+   The Gemini API key is never exposed to the client. */
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -16,7 +16,11 @@ require('./lib/local-env.cjs').loadLocalEnv(__dirname);
 // (e.g. OmniRoute) has injected it.
 const _inheritedPort = Number(process.env.PORT);
 const _safeDefault = 3456;
-if (process.env.STUDY_APP_PORT) {
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const AI_ALLOWED_EMAILS = new Set((process.env.AI_ALLOWED_EMAILS || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean));
+if (IS_PRODUCTION) {
+    var PORT = Number(process.env.PORT || process.env.STUDY_APP_PORT) || _safeDefault;
+} else if (process.env.STUDY_APP_PORT) {
     var PORT = Number(process.env.STUDY_APP_PORT) || _safeDefault;
 } else if (_inheritedPort && _inheritedPort !== _safeDefault && _inheritedPort !== 18080) {
     // Parent shell is forcing a port that isn't ours — refuse to steal it.
@@ -27,6 +31,7 @@ if (process.env.STUDY_APP_PORT) {
 }
 const ROOT = __dirname;
 const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
+if (IS_PRODUCTION && !process.env.DATA_DIR) throw new Error('Production requires DATA_DIR on persistent storage.');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
 const PROFILES_FILE = path.join(DATA_DIR, 'profiles.json');
@@ -239,11 +244,11 @@ function buildCookie(name, value, opts) {
     if (o.path) parts.push('Path=' + o.path);
     if (o.httpOnly) parts.push('HttpOnly');
     if (o.sameSite) parts.push('SameSite=' + o.sameSite);
-    if (o.secure) parts.push('Secure');
+    if (o.secure || IS_PRODUCTION) parts.push('Secure');
     return parts.join('; ');
 }
 function clearCookie(name) {
-    return name + '=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax';
+    return name + '=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax' + (IS_PRODUCTION ? '; Secure' : '');
 }
 
 function getSessionId(req) {
@@ -762,11 +767,17 @@ const server = http.createServer(async (req, res) => {
 
     // --- API routes ---
     try {
+        if (pathname === '/healthz' && req.method === 'GET') {
+            try { fs.accessSync(DATA_DIR, fs.constants.R_OK | fs.constants.W_OK); }
+            catch { return send(res, 503, {ok:false}); }
+            return send(res, 200, {ok:true});
+        }
         if (pathname === '/api/auth/register' && req.method === 'POST') {
             const r = rateCheck('register', ip);
             if (!r.ok) return send(res, 429, { error: 'Zu viele Anfragen, bitte später erneut.' });
             let body;
             try { body = await readBody(req); } catch (e) { return send(res, 400, { error: 'Ungültige Anfrage.' }); }
+            if (IS_PRODUCTION && (!process.env.REGISTRATION_CODE || body.invitationCode !== process.env.REGISTRATION_CODE)) return send(res,403,{error:'Einladungscode fehlt oder ist ungültig.'});
             if (!validEmail(body.email)) return send(res, 400, { error: 'Ungültige E-Mail.' });
             if (!validPassword(body.password)) return send(res, 400, { error: 'Passwort muss mindestens 8 Zeichen lang sein.' });
             if (!validName(body.name || '')) return send(res, 400, { error: 'Name zu lang oder ungültig.' });
@@ -942,7 +953,8 @@ const server = http.createServer(async (req, res) => {
         if (pathname === '/api/ai' && req.method === 'POST') {
             const u = getAuthUser(req);
             const localGuest=['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress)&&/^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/.test(req.headers.host||'');
-            if (!u && !localGuest) return send(res, 401, { error: 'Nicht angemeldet.', code:'sign_in_required' });
+            if (!u && (IS_PRODUCTION || !localGuest)) return send(res, 401, { error: 'Nicht angemeldet.', code:'sign_in_required' });
+            if (IS_PRODUCTION && !AI_ALLOWED_EMAILS.has(u.email.toLowerCase())) return send(res, 403, {error:'KI-Zugang für dieses Konto nicht freigeschaltet.',code:'access_denied'});
             const origin=req.headers.origin;if(origin&&origin!==`http://${req.headers.host}`&&origin!==`https://${req.headers.host}`)return send(res,403,{error:'Origin not allowed.'});
             if(!String(req.headers['content-type']||'').startsWith('application/json'))return send(res,415,{error:'JSON required.'});
             const r = rateCheck('ai', ip);

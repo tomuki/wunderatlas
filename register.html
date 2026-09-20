@@ -70,6 +70,9 @@
                         </button>
                     </span>
                 </label>
+                <label for="invitation-code">Einladungscode (bei privatem Zugang)
+                    <input class="input" id="invitation-code" type="password" autocomplete="off">
+                </label>
                 <div id="error" class="form-error" role="alert" hidden></div>
                 <button class="btn btn--primary btn--block" id="submit" type="submit">Konto erstellen</button>
             </form>
@@ -156,7 +159,7 @@
                 submit.disabled = true;
                 submit.classList.add('is-loading');
                 try {
-                    const r = await window.Auth.register(name.value.trim(), email.value.trim(), password.value);
+                    const r = await window.Auth.register(name.value.trim(), email.value.trim(), password.value, document.getElementById('invitation-code').value);
                     ExerciseEngine.toast(r && r.user ? 'Konto erstellt.' : 'Wenn die E-Mail noch nicht vergeben ist, wurde ein Konto angelegt. Bitte melde dich mit deinem Passwort an.', 'ok');
                     // Nach erfolgreicher Registrierung in die App springen.
                     // Nur ein tatsächlich neu erstelltes Konto (mit user-Objekt) leiten wir

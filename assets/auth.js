@@ -61,8 +61,8 @@
         if (!state.learner?.updatedAt && result[1].status === 'fulfilled' && result[1].value.learner) state.learner = result[1].value.learner;
         localStorage.setItem(key, JSON.stringify(state));
     }
-    async function register(name, email, password) {
-        const r = await call('/api/auth/register', { name, email, password });
+    async function register(name, email, password, invitationCode) {
+        const r = await call('/api/auth/register', { name, email, password, invitationCode });
         if (r && r.user) { writeUser(r.user); await restoreLearning(); }
         return r;
     }

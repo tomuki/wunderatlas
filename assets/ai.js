@@ -32,6 +32,7 @@
             }
             return {feedback:null,source:'unavailable',code:out?.code||'invalid_response',error:feedbackError(out?.code,language)};
         } catch (e) {
+            if(e.code==='access_denied') return {feedback:null,source:'unavailable',code:e.code,error:language==='en'?'AI access has not been enabled for this account.':'KI-Zugang ist für dieses Konto noch nicht freigeschaltet.'};
             return {
                 feedback: null,
                 source: 'fehler',code:e.code|| (e.name==='AbortError'?'timeout':'network'),

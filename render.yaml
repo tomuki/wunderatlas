@@ -1,0 +1,31 @@
+# Paid service and disk. Review the displayed cost before creating the service.
+services:
+  - type: web
+    name: wunderatlas
+    runtime: node
+    region: frankfurt
+    plan: starter
+    numInstances: 1
+    buildCommand: node --check server.js
+    startCommand: node server.js
+    healthCheckPath: /healthz
+    autoDeployTrigger: commit
+    disk:
+      name: wunderatlas-data
+      mountPath: /var/data/wunderatlas
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data/wunderatlas
+      - key: GEMINI_MODEL
+        value: gemini-3.6-flash
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: AI_ALLOWED_EMAILS
+        sync: false
+      - key: REGISTRATION_CODE
+        generateValue: true
