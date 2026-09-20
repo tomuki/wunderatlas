@@ -100,7 +100,7 @@
         ge('Mini-exam: ' + sub + ' has 3 variants', bundles.length, 3, 'count: ' + bundles.length);
         bundles.forEach(b => {
             assert('Mini-exam: ' + b.id + ' has parts', Array.isArray(b.parts) && b.parts.length >= 3, 'parts: ' + (b.parts || []).length);
-            assert('Mini-exam: ' + b.id + ' has duration', b.durationMin === 240, 'duration: ' + b.durationMin);
+            assert('Mini-exam: ' + b.id + ' has duration', b.durationMin === ({de:75,en:45,math:20}[sub]), 'duration: ' + b.durationMin);
         });
     });
 

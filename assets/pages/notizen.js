@@ -73,6 +73,9 @@
             r.onload = () => {
                 try {
                     const obj = JSON.parse(r.result);
+                    if(!obj||typeof obj!=='object'||(!Array.isArray(obj.notes)&&!Array.isArray(obj.dictionary)))throw new Error('Keine Notizen oder Vokabeln gefunden.');
+                    if(obj.notes!==undefined&&(!Array.isArray(obj.notes)||obj.notes.some(n=>!n||typeof n.id!=='string'||typeof n.title!=='string'||typeof n.body!=='string'||(n.tags!==undefined&&(!Array.isArray(n.tags)||n.tags.some(t=>typeof t!=='string'))))))throw new Error('Ungültige Notizen.');
+                    if(obj.dictionary!==undefined&&(!Array.isArray(obj.dictionary)||obj.dictionary.some(n=>!n||typeof n.id!=='string'||typeof n.term!=='string'||typeof n.translation!=='string')))throw new Error('Ungültige Vokabeln.');
                     Store.update(state => {
                         if (Array.isArray(obj.notes)) state.notes = obj.notes;
                         if (Array.isArray(obj.dictionary)) state.dictionary = obj.dictionary;
@@ -103,13 +106,13 @@
                         <input class="input" id="search" placeholder="Suche nach Titel oder Inhalt …" style="width:100%; margin-bottom:8px">
                         <ul class="list" id="list">
                             ${notes.length === 0 ? '<li class="muted">Noch keine Notizen.</li>' : notes.map(n => `
-                                <li class="list__item" data-id="${n.id}">
+                                <li class="list__item" data-id="${escapeHtml(n.id)}">
                                     <div style="flex:1">
                                         <div class="list__title">${escapeHtml(n.title || '(ohne Titel)')}</div>
                                         <div class="muted" style="font-size:0.8em">${(n.tags || []).map(t => '#' + escapeHtml(t)).join(' ')} · ${formatDateDE(n.updated)}</div>
                                     </div>
-                                    <button class="btn btn--sm" data-edit="${n.id}">${Icons.icon('edit')}</button>
-                                    <button class="btn btn--sm btn--danger" data-del="${n.id}">${Icons.icon('trash')}</button>
+                                    <button class="btn btn--sm" data-edit="${escapeHtml(n.id)}">${Icons.icon('edit')}</button>
+                                    <button class="btn btn--sm btn--danger" data-del="${escapeHtml(n.id)}">${Icons.icon('trash')}</button>
                                 </li>
                             `).join('')}
                         </ul>
@@ -132,6 +135,7 @@
             </div>
         `;
         const search = mount.querySelector('#search');
+        const noMatch=document.createElement('li');noMatch.className='muted';noMatch.hidden=true;noMatch.textContent='Keine passenden Notizen.';mount.querySelector('#list').appendChild(noMatch);
         search.addEventListener('input', () => {
             const q = search.value.toLowerCase();
             mount.querySelectorAll('#list .list__item').forEach(li => {
@@ -139,6 +143,7 @@
                 const match = !q || (n.title || '').toLowerCase().includes(q) || (n.body || '').toLowerCase().includes(q) || (n.tags || []).some(t => t.toLowerCase().includes(q));
                 li.style.display = match ? '' : 'none';
             });
+            noMatch.hidden=!q||[...mount.querySelectorAll('#list .list__item')].some(li=>li.style.display!=='none');
         });
         mount.querySelector('#newNote').addEventListener('click', () => editForm(null));
         mount.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => {
@@ -170,6 +175,7 @@
             ExerciseEngine.toast('Gespeichert', 'ok');
             Router.go('notizen');
         });
+        mount.querySelector('#cancel').addEventListener('click',()=>editForm(null));
         function editForm(n) {
             mount.querySelector('#title').value = n ? n.title : '';
             mount.querySelector('#body').value = n ? n.body : '';
@@ -206,17 +212,17 @@
                 </div>
                 <ul class="list" id="dlist">
                     ${dict.filter(w => filter === 'all' || w.status === filter).map(w => `
-                        <li class="list__item" data-id="${w.id}">
+                        <li class="list__item" data-id="${escapeHtml(w.id)}">
                             <div style="flex:1">
                                 <div><strong>${escapeHtml(w.term)}</strong> <span class="muted">→ ${escapeHtml(w.translation)}</span> <span class="tag">${w.lang.toUpperCase()}</span></div>
                                 ${w.example ? `<div class="muted" style="font-size:0.85em">${escapeHtml(w.example)}</div>` : ''}
                             </div>
-                            <select class="input" data-status="${w.id}" style="max-width:140px">
+                            <select class="input" data-status="${escapeHtml(w.id)}" style="max-width:140px">
                                 <option value="kann" ${w.status==='kann'?'selected':''}>Kann ich</option>
                                 <option value="wiederholen" ${w.status==='wiederholen'?'selected':''}>Wiederholen</option>
                                 <option value="schwer" ${w.status==='schwer'?'selected':''}>Schwer</option>
                             </select>
-                            <button class="btn btn--sm btn--danger" data-del="${w.id}">${Icons.icon('trash')}</button>
+                            <button class="btn btn--sm btn--danger" data-del="${escapeHtml(w.id)}">${Icons.icon('trash')}</button>
                         </li>
                     `).join('') || '<li class="muted">Keine Einträge.</li>'}
                 </ul>
@@ -229,6 +235,7 @@
                 const match = !q || (w.term||'').toLowerCase().includes(q) || (w.translation||'').toLowerCase().includes(q) || (w.example||'').toLowerCase().includes(q);
                 li.style.display = match ? '' : 'none';
             });
+            noMatch.hidden=!q||[...mount.querySelectorAll('#list .list__item')].some(li=>li.style.display!=='none');
         });
         mount.querySelectorAll('[data-filter]').forEach(b => b.addEventListener('click', () => {
             container.dataset.dictFilter = b.dataset.filter;

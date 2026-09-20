@@ -183,7 +183,7 @@
             // Block resubmission after answer.
             const ex = exerciseHost.querySelector('.exercise');
             if (!ex) return;
-            ex.querySelectorAll('input, textarea, select').forEach(el => { el.disabled = true; });
+            ex.querySelectorAll('input, textarea, select').forEach(el => { if(!el.closest('[data-rubric-form],[data-math-process]'))el.disabled = true; });
             ex.querySelectorAll('[data-action="check"]').forEach(b => {
                 // Hide the original Submit/Prüfen button completely after
                 // answer — the pager's "Weiter" / "Lerneinheit abschließen"
@@ -212,7 +212,7 @@
             exerciseHost.appendChild(exerciseMount);
             cached.set(ex, exerciseMount);
             exerciseMount.addEventListener('click', event => {
-                if (!event.target.closest('[data-action="reset"]')) return;
+                if (!event.target.closest('[data-action="reset"],[data-action="revise"]')) return;
                 results[exercises.indexOf(ex)] = null;
                 queueMicrotask(() => {
                     showPagerBeforeAnswer();
@@ -227,7 +227,7 @@
                     onResult: (correct) => {
                         // Save the result; don't re-record on "Zurück".
                         const origIdx = exercises.indexOf(ex);
-                        if (origIdx >= 0) results[origIdx] = !!correct;
+                        if (origIdx >= 0) results[origIdx] = correct===null?'review':!!correct;
                         disableHostInputs();
                         showPagerAfterAnswer();
                     }
@@ -333,7 +333,7 @@
                 const entry = document.createElement('button');
                 entry.type = 'button';
                 entry.className = 'seq-overview-item';
-                entry.innerHTML = `<span>${escapeHtml(labels.counter(i, ordered.length))}<br>${escapeHtml(ex.q || ex.title || ex.topic || 'Übung')}</span><small>${result == null ? 'Offen ↗' : result ? '✓ Richtig' : '↺ Noch üben'}</small>`;
+                entry.innerHTML = `<span>${escapeHtml(labels.counter(i, ordered.length))}<br>${escapeHtml(ex.q || ex.title || ex.topic || 'Übung')}</span><small>${result == null ? (subject==='en'?'Open ↗':'Offen ↗') : result==='review' ? (subject==='en'?'Rubric review':'Kriterien prüfen') : result ? (subject==='en'?'✓ Correct':'✓ Richtig') : (subject==='en'?'↺ Review':'↺ Noch üben')}</small>`;
                 entry.addEventListener('click', () => { idx = i; viewMode = 'single'; rerender(); });
                 list.appendChild(entry);
             });
@@ -390,8 +390,8 @@
             summary.className = 'card card--quiet seq-recap';
             summary.innerHTML = `
                 <h3>${escapeHtml(labels.recapTitle)}</h3>
-                <p>${escapeHtml(labels.recapCorrect(correctCount, exercises.length))}</p>
-                <div class="row" style="margin-top:8px">
+                <p>${escapeHtml(labels.recapCorrect(correctCount, results.filter(r=>typeof r==='boolean').length))}</p>
+                <p>${results.includes('review')?(subject==='en'?'Written responses are completed and await rubric review.':'Schriftliche Antworten sind bearbeitet und werden anhand der Kriterien geprüft.'):''}</p><div class="row" style="margin-top:8px">
                     <button class="btn btn--ghost" type="button" data-action="back-to-list">${escapeHtml(labels.backToList)}</button>
                     <button class="btn btn--primary" type="button" data-action="next-unit">${escapeHtml(labels.nextRecommended)}</button>
                 </div>

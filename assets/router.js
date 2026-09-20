@@ -14,20 +14,12 @@
         return true; // soft gate — see app.js renderUserArea().
     }
     function go(name, params) {
-        // params (optional): { ref, subject, ... } — appended as /segment?key=val to the hash.
-        if (params && Object.keys(params).length) {
-            const segments = [name];
-            const qs = [];
-            for (const k of Object.keys(params)) {
-                const v = params[k];
-                if (v != null) segments.push(String(v));
-                else qs.push(k);
-            }
-            const tail = qs.length ? '?' + qs.join('&') : '';
-            window.location.hash = '#/' + segments.join('/') + tail;
-        } else {
-            window.location.hash = '#/' + name;
-        }
+        const values=params||{};
+        const suffix=values.ref!=null?'/'+encodeURIComponent(String(values.ref)):'';
+        const query=Object.entries(values).filter(([key,value])=>key!=='ref'&&value!=null).map(([key,value])=>encodeURIComponent(key)+'='+encodeURIComponent(String(value))).join('&');
+        const next='#/'+name+suffix+(query?'?'+query:'');
+        if(window.location.hash===next&&routes.has(name))return render();
+        window.location.hash=next;
     }
     function current() { return currentRoute; }
 
@@ -37,16 +29,14 @@
         const parts = path.split('/').filter(Boolean);
         const name = parts[0] || 'dashboard';
         const params = {};
-        parts.slice(1).forEach((seg, i) => {
-            // Convention: first extra segment is "ref" for lesson pages, "subject" for pruefung.
-            if (i === 0) params.ref = seg;
-            else params.subject = seg;
-        });
-        if (query) {
-            query.split('&').forEach(kv => {
-                const [k, v] = kv.split('=');
-                if (k) params[k] = v != null ? v : true;
-            });
+        const decode=value=>{try{return decodeURIComponent(value);}catch{return value;}};
+        if(parts[1]) {
+            if(name==='pruefung'){params.subject=decode(parts[1]);if(parts[2])params.variant=decode(parts[2]);}
+            else params.ref=decode(parts[1]);
+        }
+        if(query)for(const entry of query.split('&')){
+            const at=entry.indexOf('='),key=at<0?entry:entry.slice(0,at),value=at<0?true:decode(entry.slice(at+1));
+            if(key)params[decode(key)]=value;
         }
         return { name, params };
     }
@@ -82,7 +72,8 @@
             window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
         } catch (e) {
             console.error(e);
-            root.innerHTML = '<div class="card"><h2>Fehler</h2><p class="muted">Die Seite konnte nicht geladen werden: ' + escapeHtml(e.message) + '</p></div>';
+            root.innerHTML = '<div class="card"><h2>Fehler</h2><p class="muted">Die Seite konnte nicht geladen werden: ' + escapeHtml(e.message) + '</p><button class="btn" data-route-retry>Erneut versuchen</button><a class="btn" href="#/dashboard">Zur Übersicht</a></div>';
+            root.querySelector('[data-route-retry]').addEventListener('click',render);
             if (fs) fs.textContent = 'Fehler';
         }
     }

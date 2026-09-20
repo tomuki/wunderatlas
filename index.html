@@ -43,15 +43,7 @@
             <nav class="app-nav" aria-label="Hauptnavigation">
                 <a href="#/dashboard" data-nav="dashboard">Mein Atlas</a>
                 <a href="#/plan" data-nav="plan">Lernplan</a>
-                <div class="nav-group" data-nav-group="lernen">
-                    <button type="button" class="nav-group__btn" id="lernen-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="lernen-menu">Lernen <span class="caret" aria-hidden="true">▾</span></button>
-                    <div class="nav-submenu" id="lernen-menu" role="menu" hidden>
-                        <a href="#/deutsch" data-nav="deutsch" role="menuitem">Deutsch</a>
-                        <a href="#/englisch" data-nav="englisch" role="menuitem">Englisch</a>
-                        <a href="#/mathematik" data-nav="mathematik" role="menuitem">Mathematik</a>
-                        <a href="#/lernkarten" data-nav="lernkarten" role="menuitem">Lernkarten</a>
-                    </div>
-                </div>
+                <a href="#/bibliothek" data-nav="bibliothek">Bibliothek</a>
                 <a href="#/pruefung" data-nav="pruefung">Prüfung</a>
             </nav>
 
@@ -71,12 +63,8 @@
                     </button>
                     <div class="burger__menu" id="burger-menu" role="menu" hidden>
                         <a href="#/fortschritt" data-nav="fortschritt" role="menuitem">Fortschritt</a>
-                        <a href="#/fehler" data-nav="fehler" role="menuitem">Fehlerjournal</a>
-                        <a href="#/notizen" data-nav="notizen" role="menuitem">Notizen</a>
-                        <a href="#/profil" data-nav="profil" role="menuitem">Profil &amp; Diagnostik</a>
-                        <a href="#/quellen" data-nav="quellen" role="menuitem">Quellen</a>
+                        <a href="#/profil" data-nav="profil" role="menuitem">Profil</a>
                         <hr>
-                        <button type="button" data-action="theme" role="menuitem">Design wechseln</button>
                         <button type="button" data-action="logout" role="menuitem">Abmelden</button>
                     </div>
                 </div>
@@ -125,6 +113,7 @@
     <script src="assets/data/vlada-learning.js"></script>
     <script src="assets/data/plan-template.js"></script>
     <script src="assets/exercises/engine.js"></script>
+    <script src="assets/assessment.js"></script>
     <script src="assets/exercises/sequential.js"></script>
     <script src="assets/exercises/multiple-choice.js"></script>
     <script src="assets/exercises/fill-blank.js"></script>
@@ -136,6 +125,10 @@
     <script src="assets/exercises/timed-writing.js"></script>
     <script src="assets/exercises/math-input.js"></script>
     <script src="assets/exercises/cloze.js"></script>
+    <script src="assets/data/exam-de-b1.js"></script>
+    <script src="assets/data/exam-en-b1.js"></script>
+    <script src="assets/data/exam-math-extended.js"></script>
+    <script src="assets/data/exam-models.js"></script>
     <script src="assets/exercises/mini-exam.js"></script>
     <script src="assets/pages/dashboard.js"></script>
     <script src="assets/pages/plan.js"></script>
@@ -154,7 +147,16 @@
     <script src="assets/learner.js"></script>
     <script src="assets/ai.js"></script>
     <script src="assets/auth.js"></script>
+    <script src="assets/data/library-reading.js"></script>
+    <script src="assets/data/library-foundations.js"></script>
+    <script src="assets/data/library-expansion.js"></script>
+    <script src="assets/pages/bibliothek.js"></script>
     <script src="assets/atlas.js"></script>
+    <script src="assets/data/practice-studio.js"></script>
+    <script src="assets/data/design-projects.js"></script>
+    <script src="assets/practice-system.js"></script>
+    <script src="assets/library-platform.js"></script>
+    <script src="assets/math-work.js"></script>
     <script src="assets/app.js"></script>
     <!-- Figma capture is opt-in; ordinary learning sessions load no design tooling. -->
     <script>if(new URLSearchParams(location.search).has('figma')){const s=document.createElement('script');s.src='https://mcp.figma.com/mcp/html-to-design/capture.js';s.async=true;document.head.appendChild(s);}</script>

@@ -65,7 +65,7 @@
             </div>
 
             <h2 style="margin-top:24px">Einträge</h2>
-            <div class="card">
+            <div class="card" data-error-list>
                 ${errors.length === 0
                     ? '<div class="empty"><div class="empty__icon">' + Icons.icon('check') + '</div><div class="empty__title">Keine Fehler erfasst</div><p class="muted">Fehler werden beim Bearbeiten der Aufgaben automatisch gespeichert.</p></div>'
                     : renderList(filtered(errors, due, filter))
@@ -112,8 +112,11 @@
             </li>
         `).join('')}</ul>`;
     }
+    const bound=new WeakSet();
     function bind(container) {
+        if(bound.has(container))return;bound.add(container);
         container.addEventListener('click', e => {
+            if(!e.target.closest('[data-error-list]'))return;
             const rep = e.target.closest('[data-repeat]');
             const del = e.target.closest('[data-del]');
             if (rep) {

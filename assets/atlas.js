@@ -13,6 +13,7 @@
     const isoDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     function href(task) {
         if (!task) return '#/deutsch';
+        if (task.assignmentId) return '#/praxis/'+encodeURIComponent(task.assignmentId)+'?stage='+task.stage;
         if (task.type==='mock-exam' || task.type==='mini-exam' || String(task.ref||'').startsWith('mini-exam:')) return '#/pruefung?subject='+encodeURIComponent(task.subject);
         if (task.type==='review') return '#/fehler';
         const sub=subjects.find(s=>s.id===task.subject);
@@ -24,7 +25,7 @@
     }
     function next(s) {
         for(const week of (s.plan?.weeks||[])) for(const day of week.days) for(const task of day.tasks) {
-            if(!completed(s,task)) return {task,day,week};
+            if(day.date>=isoDate(new Date())&&!completed(s,task)) return {task,day,week};
         }
         return null;
     }
@@ -49,9 +50,9 @@
           <figure class="atlas-hero-art"><img src="assets/atlas-garden.svg" alt="Ein Pony auf einem gewundenen Weg zwischen Blumen und grünen Hügeln"><div class="atlas-seal"><strong>${days}</strong><span>TAGE BIS ZU<br> DEINEM ZIEL</span></div><figcaption>FIG. 01 — AUCH KLEINE SCHRITTE FÜHREN WEIT.</figcaption></figure>
         </section>
         <section class="atlas-today" aria-labelledby="today-title"><div class="atlas-section-label"><span>01 / HEUTE</span><h2 id="today-title">Ein guter<br> <em>nächster Schritt.</em></h2><a href="#/plan" class="atlas-text-link">Zum Wochenplan ↗</a></div>
-         <a class="atlas-next" href="${href(task)}"><span class="atlas-kicker">${task?esc(label(task.subject))+' · '+esc(task.durationMin||30)+' MINUTEN':'DEINE LERNREISE'}</span><h3>${esc(task?.title||'Zeit für eine neue Entdeckung')}</h3><p>${task?'Eine noch offene Einheit aus deinem persönlichen Lernplan.':'Deine geplanten Einheiten sind abgeschlossen. Entdecke ein Thema neu.'}</p><span class="atlas-arrow" aria-hidden="true">↗</span></a>
+         <a class="atlas-next" href="${href(task)}"><span class="atlas-kicker">${task?esc(label(task.subject))+' · '+esc(task.durationMin||30)+' MINUTEN':'DEINE LERNREISE'}</span><h3>${esc(task?.title||'Zeit für eine neue Entdeckung')}</h3><p>${task?esc(task.reason||'Eine noch offene Einheit aus deinem persönlichen Lernplan.'):'Deine geplanten Einheiten sind abgeschlossen. Entdecke ein Thema neu.'}</p><span class="atlas-arrow" aria-hidden="true">↗</span></a>
          <a class="atlas-review-note" href="#/fehler"><span aria-hidden="true">✳</span><h3>${due?'Noch einmal,<br> ganz in Ruhe.':'Fehler sind<br> Wegweiser.'}</h3><p>${due?due+' Wiederholungen warten auf dich.':'Hier sammelst du, was du noch besser verstehen möchtest.'}</p><span class="atlas-text-link">Fehlerjournal öffnen ↗</span></a></section>
-        <section class="atlas-subjects" aria-labelledby="subject-title"><div class="atlas-section-bar"><h2 id="subject-title">Vier Türen. <em>Deine Möglichkeiten.</em></h2><span>02 / ENTDECKEN</span></div><div class="atlas-books">${subjects.map((sub,i)=>`<a href="#/${sub.route}" class="atlas-book atlas-book--${sub.color}"><span class="atlas-book-no">BAND 0${i+1}</span><span class="atlas-book-symbol" aria-hidden="true">${sub.motif}</span><h3>${sub.title}</h3><p>${sub.desc}</p><span class="atlas-book-foot">${sub.content()?.list?.length?sub.content().list.length+' KAPITEL':'KREATIVWERKSTATT'} <b aria-hidden="true">↗</b></span></a>`).join('')}</div></section>
+        <section class="atlas-subjects" aria-labelledby="subject-title"><div class="atlas-section-bar"><h2 id="subject-title">Vier Türen. <em>Deine Möglichkeiten.</em></h2><span>02 / ENTDECKEN</span></div><div class="atlas-books">${subjects.map((sub,i)=>`<a href="#/${sub.route}" class="atlas-book atlas-book--${sub.color}"><span class="atlas-book-no">BAND 0${i+1}</span><span class="atlas-book-symbol" aria-hidden="true">${sub.motif}</span><h3>${sub.title}</h3><p>${sub.desc}</p><span class="atlas-book-foot">${sub.id==='grafik'&&root.DesignProjects?root.DesignProjects.length+' PROJEKTE · '+(root.LibraryTopics||[]).filter(t=>t[0]==='grafik').length+' THEMEN':sub.content()?.list?.length?sub.content().list.length+' KAPITEL':'KREATIVWERKSTATT'} <b aria-hidden="true">↗</b></span></a>`).join('')}</div></section>
         <section class="atlas-bottom"><div><span class="atlas-kicker">DEIN FORTSCHRITT IST MEHR ALS EINE ZAHL</span><h2>Du wächst.<br> <em>Seite für Seite.</em></h2></div><div class="atlas-big-stat"><strong>${finished}<small> / ${total}</small></strong><span>abgeschlossene Lektionen</span><a href="#/fortschritt" class="atlas-text-link">Deinen Weg ansehen ↗</a></div><a href="#/notizen" class="atlas-scribble">Platz für<br> deine Gedanken.<span>Notizbuch öffnen ↗</span></a></section>`;
     }
     function plan(container) {
@@ -59,11 +60,12 @@
         if(!weeks.length) { container.innerHTML=head('02','Dein Lernplan','Lege zuerst dein Lernziel fest.')+'<a class="atlas-button" href="#/profil">Lernziel einstellen ↗</a>';return; }
         const today=isoDate(new Date());
         let current=weeks.findIndex(w=>w.days.some(d=>d.date===today));
+        if(current<0 || !weeks[current].days.some(d=>d.date>=today&&d.tasks.length)) current=weeks.findIndex(w=>w.days.some(d=>d.date>=today&&d.tasks.length));
         if(current<0) current=0;
         container.innerHTML=head('02','Gute Dinge<br> <em>brauchen ihren Rhythmus.</em>','Dein Wochenplan. Genug Struktur, um anzufangen. Genug Luft, um du selbst zu bleiben.')+`
         <div class="atlas-plan-toolbar"><label for="atlas-week">Deine Woche</label><select id="atlas-week">${weeks.map((w,i)=>`<option value="${i}" ${i===current?'selected':''}>Woche ${i+1} · ${dateLabel(w.start)}</option>`).join('')}</select><span>${s.profile.hoursPerWeek} Stunden / Woche</span><a href="#/profil" class="atlas-text-link">Rhythmus anpassen ↗</a></div><div id="atlas-week-body"></div>`;
         const body=container.querySelector('#atlas-week-body');
-        function show(i){const w=weeks[i];body.innerHTML=`<div class="atlas-week-title"><span>WOCHE ${String(i+1).padStart(2,'0')}</span><h2>${esc(w.goal)}</h2><p>${esc(w.outcome)}</p></div><div class="atlas-days">${w.days.map(d=>`<section class="atlas-day ${d.date===today?'is-today':''}"><header><span>${esc(new Date(d.date+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short'}))}</span><strong>${new Date(d.date+'T12:00:00').getDate()}</strong>${d.date===today?'<b>HEUTE</b>':''}</header><div>${d.tasks.length?d.tasks.map(t=>`<a class="atlas-plan-task ${completed(s,t)?'is-done':''}" href="${href(t)}"><span class="atlas-kicker">${esc(label(t.subject))} · ${t.durationMin||30} MIN.</span><h3>${esc(t.title)}</h3><span>${completed(s,t)?'✓ Gelernt · Noch einmal ansehen':'Einheit öffnen ↗'}</span></a>`).join(''):'<p class="atlas-rest">Ein bisschen Raum.<br> Für alles andere. <span aria-hidden="true">✧</span></p>'}</div></section>`).join('')}</div>`;}
+        function show(i){const w=weeks[i];body.innerHTML=`<div class="atlas-week-title"><span>WOCHE ${String(i+1).padStart(2,'0')}</span><h2>${esc(w.goal)}</h2><p>${esc(w.outcome)}</p></div><div class="atlas-days">${w.days.map(d=>`<section class="atlas-day ${d.date===today?'is-today':''}"><header><span>${esc(new Date(d.date+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short'}))}</span><strong>${new Date(d.date+'T12:00:00').getDate()}</strong>${d.date===today?'<b>HEUTE</b>':''}</header><div>${d.tasks.length?d.tasks.map(t=>`<a class="atlas-plan-task ${completed(s,t)?'is-done':''}" href="${href(t)}"><span class="atlas-kicker">${esc(label(t.subject))} · ${t.durationMin||30} MIN.</span><h3>${esc(t.title)}</h3>${t.reason?`<p>${esc(t.reason)}</p><small>${t.part?'Fortsetzung · ':''}${t.support?'Mit Einstiegshilfe':'Selbstständige Anwendung'}</small>`:''}<span>${completed(s,t)?'✓ Gelernt · Noch einmal ansehen':'Einheit öffnen ↗'}</span></a>`).join(''):'<p class="atlas-rest">Ein bisschen Raum.<br> Für alles andere. <span aria-hidden="true">✧</span></p>'}</div></section>`).join('')}</div>`;}
         container.querySelector('#atlas-week').addEventListener('change',e=>show(Number(e.target.value)));show(current);
     }
     function subjectList(container,sub) {
@@ -110,7 +112,7 @@
     }
     function lessonWorkspace(container) {
         const article=container.querySelector('.lesson'),practice=container.querySelector('#lesson-exercises');
-        const english=container.dataset.learningLanguage==='en';
+        const english=container.dataset.page==='englisch';
         if(!article||!practice)return;
         article.lang=english?'en':'de';practice.lang=english?'en':'de';
         learningTools(article);
@@ -122,7 +124,7 @@
         if(english){controls.setAttribute('aria-label','Learning mode');controls.querySelector('#atlas-read-tab').textContent='01 · Understand';controls.querySelector('#atlas-practice-tab').textContent='02 · Practise';controls.querySelector('span').textContent='Turn understanding into practice.';}
         header.after(controls);article.id='atlas-reading';article.setAttribute('role','tabpanel');article.setAttribute('aria-labelledby','atlas-read-tab');practice.setAttribute('role','tabpanel');practice.setAttribute('aria-labelledby','atlas-practice-tab');practice.hidden=true;
         const cta=document.createElement('button');cta.className='atlas-button atlas-read-cta';cta.textContent=english?'Try it yourself ↗':'Jetzt selbst ausprobieren ↗';article.appendChild(cta);
-        function select(index){article.hidden=index===1;practice.hidden=index===0;controls.querySelectorAll('[role=tab]').forEach((b,i)=>{b.setAttribute('aria-selected',String(i===index));b.tabIndex=i===index?0:-1;});}
+        function select(index){article.hidden=index===1;const panel=practice.closest('[data-practice-panel]')||practice;panel.hidden=index===0;if(panel!==practice)practice.hidden=false;controls.querySelectorAll('[role=tab]').forEach((b,i)=>{b.setAttribute('aria-selected',String(i===index));b.tabIndex=i===index?0:-1;});}
         controls.querySelectorAll('button').forEach((b,i)=>{b.addEventListener('click',()=>select(i));b.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const n=e.key==='Home'?0:e.key==='End'?1:1-i;select(n);controls.querySelectorAll('button')[n].focus();}});});
         cta.addEventListener('click',()=>{select(1);controls.querySelectorAll('button')[1].focus();controls.scrollIntoView({block:'start'});});
     }
@@ -154,5 +156,5 @@
         container.dataset.learningLanguage=sub.id==='en'?'en':'de';
         await originals[sub.route](container,params);lessonWorkspace(container);
     };});
-    Object.keys(root.Pages).forEach(name=>{const render=root.Pages[name];root.Pages[name]=async (container,params)=>{container.dataset.page=name;container.classList.add('atlas-page');await render(container,params);};});
+    Object.keys(root.Pages).forEach(name=>{const render=root.Pages[name];root.Pages[name]=async (container,params)=>{container.dataset.page=name;container.lang=name==='englisch'?'en':'de';container.classList.add('atlas-page');await render(container,params);};});
 })(window);

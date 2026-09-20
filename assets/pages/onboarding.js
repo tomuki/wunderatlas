@@ -16,15 +16,17 @@
     ];
     const STORAGE_KEY = 'fhr-onboarding-draft';
     const DIAG_PER_SUBJECT = 6;
+    const draftKey = () => STORAGE_KEY + '/' + (window.Auth?.readUser()?.id || 'guest');
 
-    function draft() { try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}'); } catch (e) { return {}; } }
-    function saveDraft(d) { try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch (e) {} }
-    function clearDraft() { try { sessionStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+    function draft() { try { return JSON.parse(sessionStorage.getItem(draftKey()) || '{}'); } catch (e) { return {}; } }
+    function saveDraft(d) { try { sessionStorage.setItem(draftKey(), JSON.stringify(d)); } catch (e) {} }
+    function clearDraft() { try { sessionStorage.removeItem(draftKey()); } catch (e) {} }
 
     function current() {
         const s = Store.load();
         const d = draft();
-        return Object.assign({}, s.profile || {}, d);
+        const merged = Object.assign({}, s.profile || {}, d);
+        return window.PracticeSystem ? PracticeSystem.normalise(merged) : merged;
     }
 
     function escapeHtml(s) {
@@ -94,13 +96,13 @@
                     <select class="input" id="o-lv-en">${opts('EN')}</select>
                 </label>
                 <label>Mathematik
-                    <select class="input" id="o-lv-math">${opts('MATH')}</select>
+                    <select class="input" id="o-lv-math">${[['foundation','Grundlagen aufbauen'],['developing','Verfahren mit Unterstützung anwenden'],['secure','Verfahren selbstständig begründen']].map(([v,l])=>`<option value="${v}" ${data.mathReadiness===v?'selected':''}>${l}</option>`).join('')}</select>
                 </label>
             </div>
         `;
     }
     function step3(c, data) {
-        const isGrafik = (data.major || '').startsWith('BK-Grafik') || (data.major || '').startsWith('BK-Gestalt');
+        const isGrafik = /grafik|gestalt/i.test(data.major || '');
         const all = [
             { id: 'de-ortho', label: 'Deutsch: Rechtschreibung', sub: 'de' },
             { id: 'de-gram', label: 'Deutsch: Grammatik', sub: 'de' },
@@ -110,7 +112,7 @@
             { id: 'en-write', label: 'Englisch: Schreiben', sub: 'en' },
             { id: 'ma-func', label: 'Mathematik: Funktionen', sub: 'math' },
             { id: 'ma-calc', label: 'Mathematik: Ableitung/Integral', sub: 'math' },
-            { id: 'ma-vec', label: 'Mathematik: Vektoren', sub: 'math' }
+            { id: 'math', label: 'Mathematik: Modellierung und Transfer', sub: 'math' }
         ];
         const grafikAll = isGrafik ? [
             { id: 'gr-plakat', label: 'Grafik: Plakat-Analyse', sub: 'gr' },
@@ -135,7 +137,10 @@
     }
     function step4(c, data) {
         const formats = [
-            { id: 'mc', label: 'Multiple Choice' },
+            { id: 'analysis', label: 'Analyse und Vergleich' },
+            { id: 'project', label: 'Projekte und eigene Ergebnisse' },
+            { id: 'argumentation', label: 'Argumentation' },
+            { id: 'error', label: 'Fehleranalyse' },
             { id: 'fill', label: 'Lückentext' },
             { id: 'match', label: 'Zuordnung' },
             { id: 'sort', label: 'Reihenfolge' },
@@ -201,11 +206,11 @@
         // ergänzen wir 2 Fragen aus dem Grafik-Katalog.
         const out = { de: [], en: [], math: [] };
         const s = Store.load();
-        const isGrafik = (s.profile && s.profile.major || '').startsWith('BK-Grafik') || (s.profile && s.profile.major || '').startsWith('BK-Gestalt');
+        const isGrafik = /grafik|gestalt/i.test(s.profile?.major || '');
         const files = {
-            de: () => (root.ContentDE && root.ContentDE.lessons) || [],
-            en: () => (root.ContentEN && root.ContentEN.lessons) || [],
-            math: () => (root.ContentMATH && root.ContentMATH.lessons) || []
+            de: () => (root.ContentDE && root.ContentDE.list) || [],
+            en: () => (root.ContentEN && root.ContentEN.list) || [],
+            math: () => (root.ContentMATH && root.ContentMATH.list) || []
         };
         for (const sub of Object.keys(out)) {
             const lessons = files[sub]();
@@ -256,7 +261,7 @@
         saveDraft(data);
         const all = [...diag.de, ...diag.en, ...diag.math, ...(diag.gr || [])];
         return `
-            <p class="muted">Beantworte die 18${diag.gr ? '+2' : ''} Fragen ehrlich. Du kannst jederzeit überspringen — die Aufgabe zählt dann als falsch und hilft uns, das Profil zu schärfen.</p>
+            <p class="muted">Beantworte die 18${diag.gr ? '+2' : ''} Fragen ehrlich. Du kannst jederzeit überspringen — unbeantwortete Fragen werden nicht gewertet.</p>
             <div id="o-diag">
                 ${all.map((q, i) => renderDiag(q, i)).join('')}
             </div>
@@ -449,7 +454,7 @@
         if (step === 2) {
             data.levelDE = (container.querySelector('#o-lv-de') || {}).value || data.levelDE || 'B1';
             data.levelEN = (container.querySelector('#o-lv-en') || {}).value || data.levelEN || 'B1';
-            data.levelMATH = (container.querySelector('#o-lv-math') || {}).value || data.levelMATH || 'B1';
+            data.mathReadiness = (container.querySelector('#o-lv-math') || {}).value || data.mathReadiness || 'developing';
         }
         if (step === 5) {
             data.hoursPerWeek = Number((container.querySelector('#o-hours') || {}).value) || data.hoursPerWeek || 5;
@@ -482,20 +487,27 @@
     function gradeDiag(container, data) {
         const diag = data._diag || pickDiag();
         const all = [...diag.de, ...diag.en, ...diag.math, ...(diag.gr || [])];
-        let correct = 0, total = all.length;
+        let correct = 0, total = 0;
         const perSub = { de: { c: 0, t: 0 }, en: { c: 0, t: 0 }, math: { c: 0, t: 0 } };
         if (diag.gr) perSub.gr = { c: 0, t: 0 };
         for (let i = 0; i < all.length; i++) {
             const q = all[i];
             const sel = container.querySelector(`input[name="dq${i}"]:checked`);
-            const choice = sel ? Number(sel.value) : -1;
+            if (!sel) continue;
+            total += 1;
+            const choice = Number(sel.value);
             const ok = choice === q.answer;
             if (!perSub[q.subject]) perSub[q.subject] = { c: 0, t: 0 };
             perSub[q.subject].t += 1;
             if (ok) { perSub[q.subject].c += 1; correct += 1; }
             // Feed the learner model
             Store.update(state => {
-                Learner.record(state, { subject: q.subject, topic: q.topic, type: q.type, correct: ok, timeSec: 30, at: new Date().toISOString() });
+                state.diagnosticRecorded = state.diagnosticRecorded || {};
+                const key = q.subject + '/' + q.topic + '/' + q.prompt;
+                if (!state.diagnosticRecorded[key]) {
+                    Learner.record(state, { subject: q.subject, topic: q.topic, type: q.type, correct: ok, at: new Date().toISOString() });
+                    state.diagnosticRecorded[key] = true;
+                }
                 return state;
             });
         }
@@ -521,6 +533,7 @@
     }
     function finish(container, data) {
         data.onboardedAt = new Date().toISOString();
+        delete data._diag;
         Store.update(state => { Object.assign(state.profile || (state.profile = {}), data); return state; });
         // Generate plan from new profile
         const s = Store.load();
@@ -534,6 +547,9 @@
         clearDraft();
         ExerciseEngine.toast('Onboarding abgeschlossen.', 'ok');
         renderStep(container, STAGES.length - 1, data);
+        clearDraft();
+        const finishButton = container.querySelector('#o-next');
+        if (finishButton) { const button = finishButton.cloneNode(true); finishButton.replaceWith(button); button.textContent = 'Zum Lernplan'; button.onclick = () => Router.go('plan'); }
         // Auto-render the summary
         const sum = container.querySelector('#o-summary');
         if (sum) {
@@ -541,7 +557,7 @@
                 <ul class="list--compact">
                     <li>Prüfung: <b>${escapeHtml(data.examDate || '—')}</b></li>
                     <li>Wochenstunden: <b>${data.hoursPerWeek || 5}</b>, Sitzungslänge: <b>${data.sessionLengthMin || 90} Min.</b></li>
-                    <li>Niveau: DE <b>${data.levelDE || 'B1'}</b>, EN <b>${data.levelEN || 'B1'}</b>, MATH <b>${data.levelMATH || 'B1'}</b></li>
+                    <li>Niveau: DE <b>${data.levelDE || 'B1'}</b>, EN <b>${data.levelEN || 'B1'}</b>, MATH <b>${escapeHtml(data.mathReadiness || 'developing')}</b></li>
                     <li>Stärken: <b>${(data.strengths || []).length}</b>, Schwächen: <b>${(data.weakTopics || []).length}</b></li>
                     <li>Ziel: <b>${escapeHtml(data.goal || 'pass')}</b>, Intensität: <b>${escapeHtml(data.intensity || 'normal')}</b></li>
                 </ul>

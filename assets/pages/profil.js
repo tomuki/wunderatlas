@@ -51,7 +51,7 @@
             state.profile = state.profile || {};
             if (fields.levelDE !== undefined) state.profile.levelDE = fields.levelDE;
             if (fields.levelEN !== undefined) state.profile.levelEN = fields.levelEN;
-            if (fields.levelMATH !== undefined) state.profile.levelMATH = fields.levelMATH;
+            if (fields.mathReadiness !== undefined) state.profile.mathReadiness = fields.mathReadiness;
             return state;
         });
         if (window.Auth && window.Auth.saveProfile) {
@@ -166,7 +166,7 @@
             <div class="form-grid form-grid--3">
                 <label>Deutsch<select class="input" id="p-lv-de">${opts('DE')}</select></label>
                 <label>Englisch<select class="input" id="p-lv-en">${opts('EN')}</select></label>
-                <label>Mathematik<select class="input" id="p-lv-math">${opts('MATH')}</select></label>
+                <label>Mathematik<select class="input" id="p-lv-math">${[['foundation','Grundlagen aufbauen'],['developing','Mit Unterstützung anwenden'],['secure','Selbstständig begründen']].map(([v,l])=>`<option value="${v}" ${p.mathReadiness===v?'selected':''}>${l}</option>`).join('')}</select></label>
             </div>
             <div class="row" style="margin-top:12px"><button class="btn btn--primary" data-save="levels" type="button">Speichern</button></div>
         </div>`;
@@ -182,14 +182,21 @@
             { id: 'en-write', label: 'Englisch: Schreiben', sub: 'en' },
             { id: 'ma-func', label: 'Mathematik: Funktionen', sub: 'math' },
             { id: 'ma-calc', label: 'Mathematik: Ableitung/Integral', sub: 'math' },
-            { id: 'ma-vec', label: 'Mathematik: Vektoren', sub: 'math' }
+            { id: 'math', label: 'Mathematik: Modellierung und Transfer', sub: 'math' },
+            { id: 'gr-plakat', label: 'Gestaltung: Analyse', sub: 'grafik' },
+            { id: 'gr-typografie', label: 'Gestaltung: Typografie', sub: 'grafik' },
+            { id: 'gr-briefing', label: 'Gestaltung: Konzept', sub: 'grafik' },
+            { id: 'gr-portfolio', label: 'Gestaltung: Portfolio', sub: 'grafik' }
         ];
         const strengths = p.strengths || [];
         // weakTopics in state is an object {de:[], en:[], math:[]}; merge for includes() checks.
         const wt = p.weakTopics || {};
-        const weak = [].concat(wt.de || [], wt.en || [], wt.math || []);
+        const weak = Array.isArray(wt) ? wt : [].concat(wt.de || [], wt.en || [], wt.math || []);
         const formats = [
-            { id: 'mc', label: 'Multiple Choice' },
+            { id: 'analysis', label: 'Analyse und Vergleich' },
+            { id: 'project', label: 'Projekte und eigene Ergebnisse' },
+            { id: 'argumentation', label: 'Argumentation' },
+            { id: 'error', label: 'Fehleranalyse' },
             { id: 'fill', label: 'Lückentext' },
             { id: 'match', label: 'Zuordnung' },
             { id: 'sort', label: 'Reihenfolge' },
@@ -311,9 +318,6 @@
         <div class="card" data-section="ui">
             <div class="card__title">Barrierefreiheit & Anzeige</div>
             <div class="form-grid form-grid--3">
-                <label>Theme
-                    <select class="input" id="p-theme">${themes.map(t => `<option value="${t}" ${ui.theme === t ? 'selected' : ''}>${t === 'auto' ? 'System' : t === 'light' ? 'Hell' : 'Dunkel'}</option>`).join('')}</select>
-                </label>
                 <label>Dichte
                     <select class="input" id="p-density">${densities.map(d => `<option value="${d}" ${ui.density === d ? 'selected' : ''}>${d}</option>`).join('')}</select>
                 </label>
@@ -397,7 +401,7 @@
                     saveLevelFields(null, {
                         levelDE: ($('#p-lv-de', container) || {}).value || 'B1',
                         levelEN: ($('#p-lv-en', container) || {}).value || 'B1',
-                        levelMATH: ($('#p-lv-math', container) || {}).value || 'B1'
+                        mathReadiness: ($('#p-lv-math', container) || {}).value || 'developing'
                     });
                     ExerciseEngine.toast('Niveau gespeichert.', 'ok');
                 } else if (which === 'prefs') {
@@ -413,7 +417,7 @@
                     ExerciseEngine.toast('Präferenzen gespeichert.', 'ok');
                 } else if (which === 'ui') {
                     saveUiFields(null, {
-                        theme: ($('#p-theme', container) || {}).value || 'auto',
+                        theme: Store.load().ui.theme,
                         density: ($('#p-density', container) || {}).value || 'cozy',
                         fontSize: ($('#p-fontsize', container) || {}).value || 'base',
                         reduceMotion: !!($('#p-reduce', container) || {}).checked,
@@ -445,12 +449,10 @@
         });
         const exportBtn = container.querySelector('#p-export');
         if (exportBtn) exportBtn.addEventListener('click', () => {
-            const json = Store.exportData();
-            const out = container.querySelector('#p-export-output');
-            if (out) { out.hidden = false; out.textContent = 'Daten in Zwischenablage kopiert (siehe Konsole).'; }
-            try { navigator.clipboard.writeText(json); } catch (e) {}
-            console.log('FHR data export', json);
-            ExerciseEngine.toast('Export erstellt. Konsole / Zwischenablage.', 'ok');
+            const url=URL.createObjectURL(new Blob([Store.exportData()],{type:'application/json'}));
+            const a=document.createElement('a');a.href=url;a.download='wunderatlas-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+            const out=container.querySelector('#p-export-output');if(out){out.hidden=false;out.textContent='Sicherung als Datei heruntergeladen.';}
+            ExerciseEngine.toast('Sicherung heruntergeladen.', 'ok');
         });
         const importInput = container.querySelector('#p-import');
         if (importInput) importInput.addEventListener('change', async (e) => {
@@ -476,7 +478,7 @@
         const reset = container.querySelector('#p-reset');
         if (reset) reset.addEventListener('click', () => {
             if (!confirm('Profil auf Standardwerte zurücksetzen?')) return;
-            Store.reset();
+            Store.update(s=>{s.profile=Store.defaultState().profile;return s;});
             ExerciseEngine.toast('Profil zurückgesetzt.', 'ok');
             Router.go('profil');
         });
@@ -495,7 +497,7 @@
         applyUiPrefs();
         Router.renderBreadcrumbs([{ label: 'Dashboard', href: '#/dashboard' }, { label: 'Profil' }]);
         const s = Store.load();
-        const p = s.profile || {};
+        const p = window.PracticeSystem ? PracticeSystem.normalise(s.profile) : (s.profile || {});
 
         // Decorative corner flourishes for the header
         const fTL = window.Motifs ? window.Motifs.render('flower', { color: 'var(--primary)', size: 30 }) : null;

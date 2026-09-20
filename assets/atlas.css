@@ -64,3 +64,58 @@
 @media(hover:hover) and (pointer:fine){.atlas-review-note:hover{transform:rotate(0) translateY(-3px);box-shadow:3px 5px 0 var(--border)}}
 @media(max-width:760px){.app-nav{border-radius:8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.atlas-book:hover,.atlas-book:focus-visible,.atlas-button:hover,.atlas-button:active,.btn:not(:disabled):active{transform:none!important}.atlas-review-note:hover{transform:rotate(-2deg)}}
+
+/* Library and exam controls use the established paper-and-type layout. */
+.library-tools,.exam-settings{display:flex;align-items:end;gap:20px;flex-wrap:wrap;margin:24px 0}.library-tools label,.exam-settings label{display:grid;gap:8px}.library-tools .library-saved-filter{display:flex;gap:10px;align-items:center;min-height:44px}.library-topic-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}.library-topic{border:1px solid var(--border);background:var(--surface);padding:28px}.library-topic h2{font:1.75rem/1.25 Georgia,serif;margin:16px 0}.library-topic h2 a{color:var(--text);text-decoration:none}.library-source{font-size:.875rem;line-height:1.6}.library-topic .atlas-tool-actions{align-items:center;justify-content:space-between}.exam-part{min-width:0;border:1px solid var(--border);padding:24px;margin:24px 0}.exam-part legend{padding:0 8px;font-weight:600}.exam-part h3{font:1.3rem/1.5 Georgia,serif}.exam-option{display:flex;align-items:center;gap:12px;padding:12px 0;flex-wrap:wrap}.exam-option input[type=radio]{width:20px;height:20px;flex:0 0 auto}.exam-option select{max-width:100%;padding:10px;background:var(--surface);color:var(--text)}.exam-sort{padding-left:22px}.exam-sort li{padding:10px 0}.exam-sort li span{display:block;margin-bottom:8px}.exam-part[disabled]{opacity:.55}.exam-part .input{max-width:100%;box-sizing:border-box}.exam-part .cloze-text input{display:inline-block;width:130px;margin:8px}.exam-part textarea{width:100%;box-sizing:border-box}.exam-settings select{min-height:44px}.library-tools input[type=search]{min-width:0}
+.library-tools .library-saved-filter{flex-direction:row;justify-content:flex-start}.library-saved-filter input[type=checkbox]{width:20px;height:20px;flex:0 0 20px;margin:0}
+@media(max-width:680px){.library-topic-grid{grid-template-columns:1fr}.library-topic,.exam-part{padding:18px}.library-tools{align-items:stretch;flex-direction:column}.exam-option{align-items:flex-start;flex-direction:column}.exam-option:has(input[type=radio]){flex-direction:row}.library-topic .atlas-tool-actions{align-items:stretch}}
+
+.exam-source-text{white-space:pre-line;font:1.1rem/1.85 Georgia,serif;background:var(--surface-2);padding:22px;margin:18px 0;overflow-wrap:anywhere}.exam-section-title{margin-top:48px}.exam-official{border-block:1px solid var(--border);padding:24px 0;margin:24px 0}.exam-official .btn{white-space:normal}.exam-settings select{max-width:100%}.exam-settings label{max-width:100%}@media(max-width:600px){.exam-source-text{padding:16px}.exam-official .atlas-tool-actions{align-items:stretch}}
+
+.library-reader{max-width:78ch;margin:0 auto}.library-reading-section{margin:32px 0}.library-reading-section h2{font:1.7rem/1.3 Georgia,serif}.library-reading-section p{font-size:1.08rem;line-height:1.85}.library-reading-example{padding:24px;border-left:3px solid var(--border);background:var(--surface-2)}.library-reading-source{border-top:1px solid var(--border);padding:24px 0;margin-top:36px}.library-reading-source a{overflow-wrap:anywhere}@media(max-width:600px){.library-reading-example{padding:16px}.library-reader h1{overflow-wrap:anywhere}}
+
+.library-foundation{border:1px solid var(--border);padding:24px;margin:28px 0;background:var(--surface)}.library-foundation p,.library-attached-examples li{font-size:1.05rem;line-height:1.8}.library-glossary{display:grid;gap:14px}.library-glossary dt{font-weight:600}.library-glossary dd{margin:4px 0 0;line-height:1.65}.library-attached-examples{border-left:3px solid var(--border);padding:20px 24px;background:var(--surface-2)}.library-attached-examples li{margin:12px 0}.library-example-links{border-top:1px solid var(--border);margin-top:20px;padding-top:14px}.library-example-links a{overflow-wrap:anywhere}.library-example-links small{line-height:1.6;display:inline-block;margin-top:6px}[data-library-example]{scroll-margin-top:110px}.library-catalogue-intro{max-width:78ch}@media(max-width:600px){.library-foundation,.library-attached-examples{padding:16px}}
+
+/* Extended work reuses the book layout and existing palette. */
+.practice-studio { max-width: 900px; margin: 0 auto; }
+.practice-studio section { margin: 2rem 0; }
+.practice-studio blockquote { margin: 1rem 0; padding: 1rem; border-left: 3px solid var(--primary); white-space: pre-wrap; }
+.practice-studio label { display: block; margin: 1rem 0; }
+.practice-studio textarea { display: block; width: 100%; box-sizing: border-box; padding: .8rem; font: inherit; line-height: 1.6; resize: vertical; }
+.practice-studio select { max-width: 100%; display: block; margin: .5rem 0; }
+.practice-studio [data-stage] { border-top: 1px solid var(--border); padding-top: 1.5rem; }
+.practice-studio footer { overflow-wrap: anywhere; }
+/* Expanded library and atelier use the approved paper, typography and linework. */
+.library-category { margin: 2.5rem 0; }
+.library-category > h2 { border-bottom: 1px solid var(--border); padding-bottom: .7rem; }
+.library-category small { font: .8rem var(--font-body, sans-serif); margin-left: .7rem; }
+.library-section-nav, .design-section-nav { display:flex; flex-wrap:wrap; gap:1rem; margin:1.5rem 0 2rem; }
+.library-practice-bridge { margin:2rem 0; padding:1.5rem; border-block:1px solid var(--border); }
+.library-reading-section { scroll-margin-top: 9rem; }
+.design-project-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:2rem; margin-top:2rem; }
+.design-project { border-top:1px solid var(--border); padding-top:1.5rem; }
+.design-project h3 { font-size:1.7rem; }
+.design-project li { margin:.5rem 0; }
+.design-brief dt { font-weight:700; margin-top:1.3rem; }
+.design-brief dd { margin-left:0; }
+.design-deliverables label { display:flex; align-items:baseline; gap:.7rem; }
+.design-lab { max-width:850px; margin:2rem auto; }
+.design-lab label { display:block; margin:.7rem 0; }
+.design-lab input, .design-lab textarea { display:block; max-width:100%; }
+.design-lab textarea { width:100%; box-sizing:border-box; padding:.8rem; font:inherit; }
+.design-grid-inputs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1rem; }
+.design-grid-inputs input { width:100%; box-sizing:border-box; }
+.design-color-preview { padding:2rem; border:1px solid var(--border); }
+.design-color-preview h3, .design-color-preview p { color:inherit; }
+.design-grid-preview { display:grid; box-sizing:border-box; min-height:130px; border:1px solid var(--border); }
+.design-grid-preview span { display:grid; place-items:center; background:var(--primary-soft,#e5d8d8); border-inline:1px solid var(--border); }
+@media(max-width:650px){.design-project-grid{grid-template-columns:1fr}.design-grid-inputs{grid-template-columns:repeat(2,minmax(0,1fr))}.library-tools{flex-wrap:wrap}.library-tools label{min-width:0;max-width:100%}.library-tools select{max-width:100%}}
+
+/* Exam review uses the established paper cards and spacing. */
+[data-assessment] { padding: clamp(12px, 3vw, 24px); overflow-wrap: anywhere; }
+[data-assessment] [data-rubric-form] { padding: 12px 0; }
+[data-assessment] .exam-option { align-items: start; }
+[data-assessment] .exam-option select { max-width: 120px; }
+.exam-part { scroll-margin-top: 110px; }
+[data-exam-nav] { flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+[data-exam-nav] button { min-width: 40px; min-height: 40px; }

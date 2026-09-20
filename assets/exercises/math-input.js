@@ -34,6 +34,7 @@
     function normalizeNum(s) {
         if (s == null) return null;
         const raw = String(s).trim().replace(/[ \s]/g, '').replace(',', '.');
+        if (!raw) return null;
         const isPercent = /%$/.test(raw);
         const t = raw.replace(/%$/, '');
         const n = Number(t);
@@ -106,8 +107,8 @@
             feedback.className = 'exercise__feedback ' + (correct ? 'exercise__feedback--ok' : 'exercise__feedback--bad');
             const sol = Array.isArray(ex.answers) ? ex.answers[0] : '';
             feedback.innerHTML = `
-                <div><strong>${correct ? 'Richtig.' : 'Nicht ganz.'}</strong></div>
-                <div style="margin-top:6px">${ExerciseEngine.escapeHtml(ex.explanation || '')}</div>
+                <div><strong>${correct ? 'Endergebnis stimmt.' : 'Endergebnis weicht ab.'}</strong></div>
+                <p>Dieser Abgleich bewertet nur das Endergebnis. Ansatz und Rechenweg werden separat anhand der Kriterien geprüft.</p><div style="margin-top:6px">${ExerciseEngine.escapeHtml(ex.explanation || '')}</div>
                 ${!correct ? `<div style="margin-top:6px">Lösung: <em>${ExerciseEngine.escapeHtml(String(sol))}</em></div>` : ''}
             `;
             input.disabled = true;

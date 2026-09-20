@@ -9,6 +9,8 @@
    - Mobile: tap to flip, swipe next/prev via buttons. */
 (function (root) {
     const LS_KEY = 'fhr-cards';
+    let activeKey=null;
+    function storageKey(){try{const u=JSON.parse(localStorage.getItem('fhr-auth')||'null');return u?.id?LS_KEY+'/user/'+encodeURIComponent(u.id):LS_KEY;}catch{return LS_KEY;}}
     const PREBUILT_SETS = buildPrebuiltSets().concat(root.VladaLearningSets || []);
     const SUBJECT_LABELS = { de: 'Deutsch', en: 'Englisch', math: 'Mathematik', grafik: 'Gestaltung' };
 
@@ -25,7 +27,7 @@
                     { id: 'de-ortho-3', front: 'Standart oder Standard?', back: 'Standard (mit d).' },
                     { id: 'de-ortho-4', front: 'Groß oder klein? — „im Allgemeinen"', back: 'Groß — Substantivierung.' },
                     { id: 'de-ortho-5', front: 'Tipps zur Kommasetzung', back: 'Klauseln mit „weil/da/obwohl" → Komma. Infinitivgruppen mit „um/ohne/statt" → Komma. Aufzählungen → Komma.' },
-                    { id: 'de-ortho-6', front: 'Wann das Komma vor „und"?', back: 'Wenn zwei Hauptsätze verbunden werden: „Ich lerne, und sie schläft." Bei Aufzählungen gleicher Wortarten in der Regel kein Komma vor „und".' }
+                    { id: 'de-ortho-6', front: 'Wann das Komma vor „und"?', back: 'Zwischen zwei selbstständigen Hauptsätzen kann ein Komma die Gliederung verdeutlichen: „Ich lerne, und sie schläft." Es ist hier nicht verpflichtend. Bei Aufzählungen gleicher Wortarten in der Regel kein Komma vor „und".' }
                 ]
             },
             {
@@ -90,12 +92,12 @@
 
     function load() {
         try {
-            const raw = localStorage.getItem(LS_KEY);
+            const raw = localStorage.getItem(storageKey());
             if (!raw) return { custom: [], learned: {}, fromErrors: {} };
             return JSON.parse(raw);
         } catch (e) { return { custom: [], learned: {}, fromErrors: {} }; }
     }
-    function save(s) { try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch (e) {} }
+    function save(s) { try { localStorage.setItem(storageKey(), JSON.stringify(s)); } catch (e) {} }
 
     function escapeHtml(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -233,7 +235,7 @@
             let to = null;
             search.addEventListener('input', () => {
                 clearTimeout(to);
-                to = setTimeout(() => { filter.search = search.value; renderList(container, state, filter); }, 200);
+                to = setTimeout(() => { if(!search.isConnected)return;const focused=document.activeElement===search,pos=search.selectionStart;filter.search = search.value; renderList(container, state, filter);if(focused){const next=container.querySelector('#lk-search');next.focus();next.setSelectionRange(pos,pos);} }, 200);
             });
         }
         container.querySelectorAll('[data-filter-sub]').forEach(b => b.addEventListener('click', () => {
@@ -275,6 +277,7 @@
         const blob = new Blob([json], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
+        setTimeout(()=>URL.revokeObjectURL(a.href),1000);
         a.download = 'fhr-lernkarten-' + new Date().toISOString().slice(0, 10) + '.json';
         document.body.appendChild(a); a.click(); a.remove();
         ExerciseEngine.toast('Export gestartet.', 'ok');
@@ -283,7 +286,8 @@
         const data = JSON.parse(txt);
         if (!data || typeof data !== 'object') throw new Error('Ungültiges Format');
         const s = load();
-        if (Array.isArray(data.custom)) s.custom = s.custom.concat(data.custom);
+        if(data.custom!==undefined&&(!Array.isArray(data.custom)||data.custom.some(set=>!set||typeof set.id!=='string'||!Array.isArray(set.cards)||!set.cards.length||set.cards.some(c=>!c||typeof c.id!=='string'||typeof c.front!=='string'||typeof c.back!=='string'))))throw new Error('Ungültiges Kartenset.');
+        if (Array.isArray(data.custom)) {const ids=new Set(s.custom.map(c=>c.id));s.custom=s.custom.concat(data.custom.filter(c=>!ids.has(c.id)));}
         if (data.learned && typeof data.learned === 'object') s.learned = Object.assign({}, s.learned, data.learned);
         save(s);
     }
@@ -325,8 +329,8 @@
         addRow(); addRow();
         const addBtn = document.getElementById('lk-add-card');
         if (addBtn) addBtn.addEventListener('click', () => addRow());
-        const save = document.getElementById('lk-save-set');
-        if (save) save.addEventListener('click', () => {
+        const saveButton = document.getElementById('lk-save-set');
+        if (saveButton) saveButton.addEventListener('click', () => {
             const title = (document.getElementById('lk-set-title') || {}).value || 'Eigene Karten';
             const subject = (document.getElementById('lk-set-sub') || {}).value || 'de';
             const topic = (document.getElementById('lk-set-topic') || {}).value || 'eigene';
@@ -433,6 +437,9 @@
             }));
         }
         function onKey(e) {
+            if(!container.querySelector('#lkCard')){document.removeEventListener('keydown',onKey);return;}
+            if(e.target.closest('input,textarea,select,button,a'))return;
+            if(e.key==='Escape'){document.removeEventListener('keydown',onKey);renderList(container,state,filter);return;}
             if (e.key === ' ') { e.preventDefault(); flipped = !flipped; show(); }
             else if (e.key === 'ArrowRight') { if (idx < cards.length - 1) { idx++; flipped = false; show(); } }
             else if (e.key === 'ArrowLeft') { if (idx > 0) { idx--; flipped = false; show(); } }
@@ -446,7 +453,7 @@
             const btn = container.querySelector(`[data-rate="${rating}"]`);
             if (btn) btn.click();
         }
-        const off = (e) => { if (e.key === 'Escape') { document.removeEventListener('keydown', onKey); off && off(); } };
+        if(activeKey)document.removeEventListener('keydown',activeKey);activeKey=onKey;
         document.addEventListener('keydown', onKey);
         show();
     }

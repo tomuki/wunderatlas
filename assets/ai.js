@@ -4,30 +4,23 @@
    returns a deterministic local task (clearly tagged), not a fake AI
    response. */
 (function (root) {
-    async function call(path, body) {
-        const r = await fetch(path, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body || {})
-        });
-        const text = await r.text();
-        let data = null;
-        try { data = JSON.parse(text); } catch (e) { data = { error: text }; }
-        if (!r.ok) {
-            const msg = (data && (data.error || data.message)) || ('HTTP ' + r.status);
-            throw new Error(msg);
-        }
-        return data;
+    async function call(path,body){
+        const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),65000);
+        try{const r=await fetch(path,{method:'POST',signal:controller.signal,credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+            const text=await r.text();let data;try{data=JSON.parse(text);}catch{throw new Error('Invalid feedback response');}
+            if(!r.ok)throw Object.assign(new Error('Feedback request failed'),{code:data.code||(r.status===401?'sign_in_required':r.status===429?'quota':'provider_failed')});return data;
+        }finally{clearTimeout(timeout);}
     }
 
-    async function feedbackFreeText({ prompt, answer, language }) {
+    function feedbackError(code,language){const en=language==='en';const messages={not_configured:['Gemini ist noch nicht verbunden. Nutze vorerst Musterlösung und Selbstkontrolle.','Gemini is not connected yet. Use the model and self-assessment.'],invalid_key:['Gemini hat den Schlüssel abgelehnt. Prüfe die lokale Konfiguration und starte den Server neu.','Gemini rejected the key. Check local configuration and restart the server.'],quota:['Gemini-Limit erreicht. Versuche es später erneut; deine Lösung bleibt gespeichert.','Gemini quota reached. Try later; your response remains saved.'],model_unavailable:['Das konfigurierte Gemini-Modell ist nicht verfügbar.','The configured Gemini model is unavailable.'],sign_in_required:['Melde dich an, um KI-Feedback auf diesem Server zu nutzen.','Sign in to use AI feedback on this server.'],timeout:['Die Auswertung dauert zu lange. Versuche es erneut oder nutze die Selbstkontrolle.','The review timed out. Retry or use self-assessment.']};return (messages[code]||['KI-Feedback ist momentan nicht verfügbar. Deine Lösung bleibt erhalten.','AI feedback is currently unavailable. Your response is preserved.'])[en?1:0];}
+    async function feedbackFreeText({ prompt, answer, language, subject }) {
         try {
             const out = await call('/api/ai', {
                 action: 'feedback',
                 prompt: prompt,
                 answer: answer,
-                language: language || 'de'
+                language: subject==='math'?'de':(language || 'de'),
+                subject:subject|| (language==='en'?'en':'de')
             });
             // Neue strukturierte Form: { feedback: {summary, criteria, staerken, ...}, source }
             if (out && out.feedback) {
@@ -37,16 +30,12 @@
             if (out && typeof out.text === 'string') {
                 return { feedback: null, source: 'text', text: out.text };
             }
-            return { feedback: null, source: 'leer', error: 'Server lieferte kein Feedback.' };
+            return {feedback:null,source:'unavailable',code:out?.code||'invalid_response',error:feedbackError(out?.code,language)};
         } catch (e) {
             return {
                 feedback: null,
-                source: 'fehler',
-                error: 'KI-Feedback nicht verfügbar. ' + e.message +
-                    ' Hinweis: Der lokale AI-Server (server.js) ist optional. ' +
-                    'Lege GEMINI_API_KEY in .env an und starte den Server mit ' +
-                    '"node --env-file=.env server.js", um Gemini-Feedback zu aktivieren. ' +
-                    'Ohne Schlüssel funktionieren alle anderen Übungen weiterhin normal. Siehe README.'
+                source: 'fehler',code:e.code|| (e.name==='AbortError'?'timeout':'network'),
+                error:feedbackError(e.code||(e.name==='AbortError'?'timeout':'network'),language)
             };
         }
     }
@@ -54,7 +43,7 @@
     async function generateTask(opts) {
         // opts: { subject, topic, type, difficulty, mode, learnerHint, fromError }
         try {
-            const out = await call('/api/ai', { action: 'generate-task', ...opts });
+            const out = await call('/api/ai', { action: 'generate-task', request:opts });
             // Server already validates schema, but we attach a default id
             // and ensure the shape renders cleanly.
             if (!out.task) throw new Error('Server lieferte keine Aufgabe.');
@@ -71,44 +60,34 @@
     }
 
     function localFallback(opts) {
+        opts=opts||{};
         const sub = (opts && opts.subject) || 'de';
         const topic = (opts && opts.topic) || 'operatoren';
         const banks = {
-            de: () => (root.ContentDE && root.ContentDE.lessons) || [],
-            en: () => (root.ContentEN && root.ContentEN.lessons) || [],
-            math: () => (root.ContentMATH && root.ContentMATH.lessons) || []
+            de: () => (root.ContentDE && (root.ContentDE.list||root.ContentDE.lessons)) || [],
+            en: () => (root.ContentEN && (root.ContentEN.list||root.ContentEN.lessons)) || [],
+            math: () => (root.ContentMATH && (root.ContentMATH.list||root.ContentMATH.lessons)) || []
         };
         const lessons = (banks[sub] || banks.de)();
         const lesson = lessons.find(l => l.id === topic) || lessons[0] || {};
         const ex = (lesson.exercises || []).find(e => e.type === (opts.type || 'mc')) || (lesson.exercises || [])[0];
-        if (!ex) {
-            return { type: 'mc', title: 'Lokale Aufgabe', prompt: 'Wiederhole das Thema ' + topic + '.', options: ['A', 'B', 'C', 'D'], answer: 0, explanation: 'Lokal generiert – das KI-Backend ist nicht erreichbar.' };
-        }
-        return {
-            type: ex.type,
-            title: 'Lokale Aufgabe: ' + (lesson.title || topic),
-            prompt: ex.prompt,
-            options: ex.options,
-            answer: ex.answer,
-            explanation: ex.explanation || 'Lokale Aufgabe aus dem Themenkatalog (KI nicht verfügbar).'
-        };
+        if (!ex) return {type:'free',subject:sub,topic,q:sub==='en'?'Explain a topic you have studied using one example. Identify one point you still need to check.':'Erkläre ein gelerntes Thema an einem Beispiel. Benenne einen Punkt, den du noch überprüfen musst.',explanation:sub==='en'?'Check the explanation and example against your lesson.':'Prüfe Erklärung und Beispiel anhand deiner Lektion.',local:true,ai:false};
+        return {...ex,subject:sub,topic,q:ex.q||ex.prompt||lesson.title,prompt:ex.q||ex.prompt||lesson.title,title:(sub==='en'?'Practice from your library: ':'Übung aus deiner Bibliothek: ')+(lesson.title||topic),local:true,ai:false};
     }
 
     async function availability() {
         try {
-            const r = await fetch('/api/ai', { method: 'GET' });
+            const r = await fetch('/api/ai', { method: 'GET', signal:AbortSignal.timeout(10000) });
             if (!r.ok) return { ok: false };
             const data = await r.json();
             return {
                 ok: true,
                 hasGemini: !!(data && data.hasGemini),
-                hasAnthropic: !!(data && data.hasAnthropic),
                 primary: (data && data.primary) || 'lokal',
                 geminiModel: (data && data.geminiModel) || null,
-                anthropicModel: (data && data.anthropicModel) || null
             };
         } catch (e) { return { ok: false }; }
     }
 
-    root.AI = { feedbackFreeText, generateTask, availability, localFallback };
+    root.AI = { feedbackError, feedbackFreeText, generateTask, availability, localFallback };
 })(window);

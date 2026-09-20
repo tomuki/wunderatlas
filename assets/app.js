@@ -26,7 +26,7 @@
         if (!root.Pages) return;
         const order = ['dashboard', 'plan', 'deutsch', 'englisch', 'mathematik', 'grafik',
             'pruefung', 'fehler', 'notizen', 'lernkarten', 'fortschritt', 'profil',
-            'onboarding', 'quellen'];
+            'onboarding', 'quellen', 'bibliothek', 'praxis'];
         order.forEach(name => {
             if (root.Pages[name]) {
                 Router.register(name, (mount, params) => root.Pages[name](mount, params));

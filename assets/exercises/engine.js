@@ -147,34 +147,19 @@
         setTimeout(() => el.remove(), 2500);
     }
 
-    function showModal({ title, bodyHtml, footerHtml, wide }) {
-        const root = document.getElementById('modal-root');
-        root.innerHTML = '';
-        const overlay = document.createElement('div');
-        overlay.className = 'modal-root is-open';
-        overlay.setAttribute('aria-hidden', 'false');
-        const m = document.createElement('div');
-        m.className = 'modal' + (wide ? ' modal--wide' : '');
-        m.setAttribute('role', 'dialog');
-        m.setAttribute('aria-modal', 'true');
-        m.setAttribute('aria-label', title || 'Dialog');
-        m.innerHTML = `
-            <div class="modal__header">
-                <h3 style="margin:0">${title || ''}</h3>
-                <button class="icon-btn" type="button" data-modal-close aria-label="Schließen">${Icons.icon('x')}</button>
-            </div>
-            <div class="modal__body">${bodyHtml || ''}</div>
-            <div class="modal__footer">${footerHtml || ''}</div>
-        `;
-        overlay.appendChild(m);
-        root.appendChild(overlay);
-        const close = () => { root.innerHTML = ''; root.setAttribute('aria-hidden', 'true'); };
-        overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-        m.querySelectorAll('[data-modal-close]').forEach(b => b.addEventListener('click', close));
-        document.addEventListener('keydown', function esc(e) {
-            if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); }
-        });
-        return close;
+    let closeActiveModal=null;
+    function showModal({title,bodyHtml,footerHtml,wide}){
+        if(closeActiveModal)closeActiveModal();
+        const host=document.getElementById('modal-root'),previous=document.activeElement;
+        host.innerHTML='';host.classList.add('is-open');host.setAttribute('aria-hidden','false');
+        const dialog=document.createElement('div');dialog.className='modal'+(wide?' modal--wide':'');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-label',title||'Dialog');dialog.tabIndex=-1;
+        dialog.innerHTML=`<div class="modal__header"><h3>${escapeHtml(title||'')}</h3><button class="icon-btn" type="button" data-modal-close aria-label="Schließen">${Icons.icon('x')}</button></div><div class="modal__body">${bodyHtml||''}</div><div class="modal__footer">${footerHtml||''}</div>`;host.appendChild(dialog);
+        let closed=false;
+        function close(){if(closed)return;closed=true;host.innerHTML='';host.classList.remove('is-open');host.setAttribute('aria-hidden','true');host.removeEventListener('click',outside);document.removeEventListener('keydown',keyboard);closeActiveModal=null;if(previous?.isConnected)previous.focus();}
+        function outside(e){if(e.target===host)close();}
+        function keyboard(e){if(e.key==='Escape'){e.preventDefault();close();}if(e.key==='Tab'){const items=[...dialog.querySelectorAll('button,input,select,textarea,a[href]')].filter(x=>!x.disabled&&x.offsetParent!==null);if(!items.length){e.preventDefault();dialog.focus();return;}if(e.shiftKey&&document.activeElement===items[0]){e.preventDefault();items.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===items.at(-1)){e.preventDefault();items[0].focus();}}}
+        host.addEventListener('click',outside);document.addEventListener('keydown',keyboard);dialog.querySelector('[data-modal-close]').addEventListener('click',close);closeActiveModal=close;
+        (dialog.querySelector('input,textarea,select')||dialog).focus();return close;
     }
 
     function svgChart(values, opts) {
@@ -419,7 +404,7 @@
             const subject = (opts && opts.subject) || exercise.subject || null;
             const topic = (opts && opts.topic) || exercise.topic || exercise.ref || '_';
             const onResult = (correct, answer) => {
-                if (root.Learner) {
+                if (root.Learner && typeof correct === 'boolean') {
                     try {
                         Store.update(state => {
                             const key = exerciseKey(subject, topic, exercise);
@@ -440,7 +425,7 @@
                         Promise.resolve(Learner.pushToServer()).catch(() => {});
                     } catch (e) { console.warn('Learner.record failed', e); }
                 }
-                if (opts && opts.onResult) opts.onResult(!!correct, answer);
+                if (opts && opts.onResult) opts.onResult(correct, answer);
             };
             try {
                 // Plumb an optional next button through to the module so the

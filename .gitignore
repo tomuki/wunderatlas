@@ -1,0 +1,11 @@
+# Local secrets (the example contains no credentials)
+.env*
+!.env.example
+**/.env*
+!**/.env.example
+# Private account data and local dependencies
+/data/
+/node_modules/
+/.artifacts/
+*.log
+.DS_Store

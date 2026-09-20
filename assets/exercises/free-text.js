@@ -16,6 +16,7 @@
                 <textarea class="textarea" data-input placeholder="Deine Antwort (4–8 Sätze)"></textarea>
                 <div class="exercise__actions">
                     <button class="btn btn--primary" data-action="check" disabled>Selbst bewerten</button>
+                    <button class="btn btn--ghost" data-action="revise" hidden>${ex.subject==='en'?'Revise response':'Antwort überarbeiten'}</button>
                     <button class="btn btn--ghost" data-action="reset">Zurücksetzen</button>
                     <button class="btn btn--ghost" data-action="model">Musterlösung</button>
                     <button class="btn btn--ghost" data-action="ai" title="Optional: KI-Feedback">KI-Feedback</button>
@@ -27,11 +28,7 @@
 
     function isCorrect(ex, answer) {
         if (!answer || typeof answer !== 'string') return false;
-        // Local rule: must include at least one keyword from the model answer
-        const keywords = ex.keywords || [];
-        if (keywords.length === 0) return false;
-        const lower = answer.toLowerCase();
-        return keywords.some(k => lower.includes(String(k).toLowerCase()));
+        return null; // Written work needs a rubric, not keyword matching.
     }
 
     // Baut das Markup für strukturiertes Feedback (Aufgabenverständnis, Inhalt,
@@ -43,13 +40,10 @@
         const label = isAi
             ? ExerciseEngine.ui(ex)`<span class="tag tag--en">KI-Feedback</span>`
             : '<span class="tag tag--warn">Lokale Einschätzung</span>';
-        const note = isAi
-            ? ExerciseEngine.text(ex, 'KI-Feedback ist eine Lernhilfe, keine offizielle Bewertung.')
-            : 'Ohne gesetzten <code>GEMINI_API_KEY</code> (oder <code>ANTHROPIC_API_KEY</code>) wird das ' +
-              'Feedback aus Wortzahl, Satzlänge und Schlüsselwörtern abgeleitet. Lege den Schlüssel in ' +
-              '<code>.env</code> an und starte <code>node --env-file=.env server.js</code>, um echte ' +
-              'KI-Auswertung zu erhalten.';
-        if(ex?.subject === 'en' && !isAi) return '<p><strong>Local self-check</strong></p><p>Automatic feedback is unavailable. Compare your response with the model: check your position, reasons, examples and sentence structure. Word count alone cannot assess your English.</p>';
+        const note = ExerciseEngine.text(ex, 'KI-Feedback ist eine Lernhilfe, keine offizielle Bewertung.');
+        if(!isAi) return `<p>${ex.subject==='en'?'Automatic feedback is unavailable. Use the task-specific criteria below; word count cannot assess quality.':'Automatisches Feedback ist nicht verfügbar. Nutze die Kriterien unten; die Wortzahl bewertet keine Qualität.'}</p>${Assessment.criteriaHTML(ex,ex.subject)}`;
+        if(ex.subject==='math'&&fb.mathReview&&root.MathWork)return root.MathWork.feedbackHTML({feedback:fb,source});
+        if(fb.taskCriteria?.length)return `<p>${ExerciseEngine.escapeHtml(fb.summary||'')}</p>${fb.taskCriteria.map(c=>`<section><h4>${ExerciseEngine.escapeHtml(c.label)} · ${c.score}/3</h4><p>${ExerciseEngine.escapeHtml(c.evidence)}</p><p>${ExerciseEngine.escapeHtml(c.revision)}</p></section>`).join('')}<p>${ExerciseEngine.escapeHtml(fb.naechsterSchritt||'')}</p><p>${note}</p>`;
         const c = fb.criteria || {};
         const order = [
             ['aufgabenverstaendnis', ExerciseEngine.text(ex, 'Aufgabenverständnis')],
@@ -102,7 +96,10 @@
 
         const lifecycle = ExerciseEngine.createLifecycle(root, { checkBtn, resetBtn, feedbackEl: feedback });
 
-        let submitted = false;
+        let submitted = false, requestVersion=0;
+        const draftKey=Assessment.key('free-'+(ex.id||ex.topic||'')+'-'+ex.q);
+        try{input.value=localStorage.getItem(draftKey)||'';}catch{}
+        input.addEventListener('input',()=>{submitted=false;requestVersion++;try{localStorage.setItem(draftKey,input.value);}catch{feedback.hidden=false;feedback.textContent=ex.subject==='en'?'Could not save your draft.':'Entwurf konnte nicht gespeichert werden.';}});
 
         function updateCheckEnabled() {
             const s = lifecycle.getState();
@@ -114,7 +111,7 @@
         input.addEventListener('input', updateCheckEnabled);
 
         lifecycle.on('__reset', () => {
-            submitted = false;
+            submitted = false;requestVersion++;try{localStorage.removeItem(draftKey);}catch{}
             input.value = '';
             input.disabled = false;
         });
@@ -125,23 +122,15 @@
             submitted = true;
             lifecycle.setState('checking');
             const txt = input.value || '';
-            const len = txt.trim().split(/\s+/).filter(Boolean).length;
-            const meets = len >= (ex.minWords || 20);
             feedback.hidden = false;
             feedback.className = 'exercise__feedback';
-            feedback.innerHTML = ExerciseEngine.ui(ex)`
-                <div><strong>Selbstbewertung</strong></div>
-                <div class="muted" style="margin-top:6px">Wortzahl: ${len} (Empfehlung: mind. ${ex.minWords || 30})</div>
-                <div style="margin-top:6px">${meets ? '<span class="tag tag--en">Länge ausreichend</span>' : '<span class="tag tag--warn">Mehr Wörter schreiben</span>'}</div>
-                <div style="margin-top:8px">${ExerciseEngine.escapeHtml(ex.explanation || '')}</div>
-                <div class="muted" style="margin-top:6px">Tipp: Vergleiche deine Antwort mit der Musterlösung. Notiere dir, was du ergänzen würdest.</div>
-            `;
-            // We count self-evaluation as a successful "attempt" so progress is tracked
-            const record = ExerciseEngine.registerResult(ex.subject || null, ex.topic || 'free-text', meets, ex, txt);
-            lifecycle.setState(meets ? 'checked-correct' : 'checked-wrong');
-            if (!(record && record.dedup) && onResult) onResult(meets);
+            Assessment.writingReview(feedback,ex,txt);
+            lifecycle.setState('completed');
+            resetBtn.hidden=false;resetBtn.style.display='';resetBtn.disabled=false;root.querySelector('[data-action=revise]').hidden=false;
+            if(onResult)onResult(null,txt);
         });
 
+        root.querySelector('[data-action=revise]').addEventListener('click',()=>{submitted=false;requestVersion++;input.disabled=false;lifecycle.setState(input.value.trim()?'selected':'unanswered');root.querySelector('[data-action=revise]').hidden=true;input.focus();});
         resetBtn.addEventListener('click', () => {
             lifecycle.reset();
         });
@@ -153,13 +142,19 @@
                 <div style="margin-top:6px; white-space:pre-wrap">${ExerciseEngine.escapeHtml(ex.modelAnswer || ExerciseEngine.text(ex, '(keine hinterlegt)'))}</div>`;
         });
 
+        updateCheckEnabled();
+        const prior=Store.load().writingAttempts?.find(a=>a.taskKey===(ex.id||ex.q)&&a.results?.[0]?.answer===input.value);
+        if(prior){feedback.hidden=false;feedback.innerHTML=Assessment.resultHTML(prior);Assessment.bindReview(feedback,prior);}
         aiBtn.addEventListener('click', async () => {
+            if(!input.value.trim()){feedback.hidden=false;feedback.textContent=ex.subject==='en'?'Write a response first.':'Schreibe zuerst eine Antwort.';return;}
+            const version=++requestVersion;
             feedback.hidden = false;
             feedback.className = 'exercise__feedback';
             feedback.innerHTML = ExerciseEngine.ui(ex)`<div class="row"><span class="spinner"></span><span class="muted">KI-Feedback wird angefragt …</span></div>`;
             aiBtn.disabled = true;
             try {
-                const out = await AI.feedbackFreeText({ prompt: ex.q, answer: input.value, language: ex.subject === 'en' ? 'en' : (ex.lang || 'de') });
+                const out = await AI.feedbackFreeText({ prompt: ex.q+'\n'+(ex.context||'')+'\n'+Assessment.rubric(ex,ex.subject).map(c=>c.label+': '+c.description).join('\n'), answer: input.value, subject:ex.subject, language: ex.subject === 'en' ? 'en' : (ex.lang || 'de') });
+                if(version!==requestVersion||!root.isConnected)return;
                 if (out && out.feedback) {
                     feedback.innerHTML = renderStructuredFeedback(out.feedback, out.source, ex);
                 } else if (out && out.text) {
@@ -168,13 +163,13 @@
                         <div class="muted" style="margin-top:6px">Hinweis: KI-Feedback ist eine Hilfe, keine offizielle Bewertung.</div>`;
                 } else {
                     feedback.innerHTML = ExerciseEngine.ui(ex)`<div><strong>KI-Feedback nicht verfügbar</strong></div>
-                        <div class="muted" style="margin-top:6px">${ExerciseEngine.escapeHtml(ex.subject==='en'?'Automatic feedback is unavailable.':((out && out.error) || 'Unbekannter Fehler.'))}</div>
-                        <div class="muted" style="margin-top:6px">Lege einen <code>GEMINI_API_KEY</code> in <code>.env</code> an und starte <code>node --env-file=.env server.js</code>, um diese Funktion zu aktivieren.</div>`;
+                        <div class="muted" style="margin-top:6px">${ex.subject==='en'?'Automatic feedback is unavailable. Use the self-assessment criteria.':'Automatisches Feedback ist nicht verfügbar. Nutze die Selbstbewertung.'}</div>
+                        <div class="muted" style="margin-top:6px">${ex.subject==='en'?'Your response stays here. Try again later.':'Deine Antwort bleibt erhalten. Versuche es später erneut.'}</div>`;
                 }
             } catch (e) {
                 feedback.innerHTML = ExerciseEngine.ui(ex)`<div><strong>KI-Feedback nicht verfügbar</strong></div>
                     <div class="muted" style="margin-top:6px">${ExerciseEngine.escapeHtml(e.message || String(e))}</div>
-                    <div class="muted" style="margin-top:6px">Lege einen <code>GEMINI_API_KEY</code> in <code>.env</code> an und starte <code>node --env-file=.env server.js</code>, um diese Funktion zu aktivieren.</div>`;
+                    <div class="muted" style="margin-top:6px">${ex.subject==='en'?'Your response stays here. Try again later.':'Deine Antwort bleibt erhalten. Versuche es später erneut.'}</div>`;
             } finally {
                 aiBtn.disabled = false;
             }
@@ -182,5 +177,5 @@
     }
 
     root.Exercises = root.Exercises || {};
-    root.Exercises['free'] = { render, isCorrect, bind };
+    root.Exercises['free'] = { render, isCorrect, bind, renderStructuredFeedback };
 })(window);

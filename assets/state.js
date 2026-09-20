@@ -141,9 +141,12 @@
         return v2;
     }
 
+    function storageKey() {
+        try { const u = JSON.parse(localStorage.getItem('fhr-auth') || 'null'); return u?.id ? KEY + '/user/' + u.id : KEY; } catch (_) { return KEY; }
+    }
     function load() {
         try {
-            const raw = localStorage.getItem(KEY);
+            const raw = localStorage.getItem(storageKey());
             if (raw) {
                 const data = JSON.parse(raw);
                 if (data && data.version === SCHEMA_VERSION) {
@@ -155,6 +158,7 @@
                     return defaultState();
                 }
             }
+            if (storageKey() !== KEY) return defaultState();
             // Try to migrate from v1. Legacy v1 keys may live under 'fhr-app/v1'
             // (older versioned storage) or under a single legacy 'fhr-app' key
             // written by pre-versioning code. Check both.
@@ -195,6 +199,7 @@
         if (!data.profile.grafikdesign || typeof data.profile.grafikdesign !== 'object') {
             data.profile.grafikdesign = def.profile.grafikdesign;
         }
+        if(!data.stats.perSubject)data.stats.perSubject=def.stats.perSubject;
         // stats.perSubject
         for (const subj of ['de', 'en', 'math']) {
             if (!data.stats.perSubject[subj] || typeof data.stats.perSubject[subj] !== 'object') {
@@ -212,7 +217,7 @@
 
     function save(state) {
         try {
-            localStorage.setItem(KEY, JSON.stringify(state));
+            localStorage.setItem(storageKey(), JSON.stringify(state));
         } catch (e) {
             console.warn('State konnte nicht gespeichert werden.', e);
         }
@@ -232,7 +237,7 @@
     function notify(s) { for (const fn of subscribers) { try { fn(s); } catch (e) { console.error(e); } } }
 
     function reset() {
-        localStorage.removeItem(KEY);
+        localStorage.removeItem(storageKey());
         const s = defaultState();
         save(s);
         notify(s);
@@ -248,9 +253,15 @@
         if (!data || data.version !== SCHEMA_VERSION) {
             throw new Error('Unbekanntes Datenformat oder Version.');
         }
-        save(data);
-        notify(data);
-        return data;
+        const object=v=>v&&typeof v==='object'&&!Array.isArray(v);
+        for(const field of ['profile','stats','learner','ui'])if(data[field]!==undefined&&!object(data[field]))throw new Error('Ungültiges Feld: '+field);
+        for(const field of ['notes','dictionary','completed','errors','activity','examAttempts','writingAttempts'])if(data[field]!==undefined&&(!Array.isArray(data[field])||data[field].some(v=>!object(v))))throw new Error('Ungültige Liste: '+field);
+        if(data.stats?.perSubject!==undefined&&!object(data.stats.perSubject))throw new Error('Ungültige Fachstatistik.');
+        if(data.plan!=null&&(!object(data.plan)||!Array.isArray(data.plan.weeks)))throw new Error('Ungültiger Lernplan.');
+        const normal=ensureShape(data);save(normal);
+        if(JSON.stringify(load())!==JSON.stringify(normal))throw new Error('Sicherung konnte nicht gespeichert werden.');
+        notify(normal);
+        return normal;
     }
 
     // Today's date helpers
